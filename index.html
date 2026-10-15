@@ -25,14 +25,16 @@ header {
   padding: 1rem 1.5rem; border-bottom: 1px solid #223;
   display: flex; justify-content: space-between; align-items: center;
   background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+  flex-wrap: wrap; gap: 0.5rem;
 }
 h1 { margin: 0; font-size: 1.4rem; letter-spacing: 0.05em; }
 h1 span { color: var(--accent); }
-nav button {
+nav { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+nav button, .header-btn {
   background: transparent; border: 1px solid #345; color: var(--text);
-  padding: 0.4rem 0.8rem; margin-left: 0.4rem; border-radius: 4px; cursor: pointer;
+  padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer;
 }
-nav button:hover, nav button.active { background: #123; border-color: var(--accent); }
+nav button:hover, nav button.active, .header-btn:hover { background: #123; border-color: var(--accent); }
 main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
 .panel {
   background: var(--panel); border: 1px solid #223; border-radius: 8px;
@@ -57,7 +59,10 @@ main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
 }
 .btn:hover { background: #1a3a5a; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.save-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0.8rem 0; }
+#save-feedback { color: var(--shard); font-size: 0.9rem; min-height: 1.2em; }
 footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.8rem; }
+input[type=file] { display: none; }
 </style>
 </head>
 <body>
@@ -68,6 +73,10 @@ footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.8r
     <button id="nav-explore">Explore</button>
     <button id="nav-status">Status</button>
   </nav>
+  <div>
+    <button class="header-btn" id="header-save">Save</button>
+    <button class="header-btn" id="header-export">Export</button>
+  </div>
 </header>
 <main>
   <section id="view-manifest" class="panel">
@@ -82,6 +91,13 @@ footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.8r
   <section id="view-status" class="panel" style="display:none">
     <h2>Nexus Status</h2>
     <div class="stats" id="status-stats"></div>
+    <div class="save-row">
+      <button class="btn" id="save-btn">Save Progress</button>
+      <button class="btn" id="export-btn">Export Save File</button>
+      <button class="btn" id="import-btn">Import Save</button>
+      <input type="file" id="import-file" accept=".json,application/json">
+      <span id="save-feedback"></span>
+    </div>
     <div id="log"></div>
     <button class="btn" id="reset-btn">Reset Progress</button>
   </section>
@@ -105,7 +121,46 @@ let state = JSON.parse(localStorage.getItem("omni-realm-state") || "null") || {
   unlocked: ["aetheria", "emberdeep", "verdant"]
 };
 
-function save() { localStorage.setItem("omni-realm-state", JSON.stringify(state)); }
+function save() {
+  localStorage.setItem("omni-realm-state", JSON.stringify(state));
+}
+function manualSave() {
+  save();
+  const fb = document.getElementById("save-feedback");
+  if (fb) {
+    fb.textContent = "Progress saved.";
+    setTimeout(() => { fb.textContent = ""; }, 2000);
+  }
+  log("Manual save complete.");
+}
+function exportSave() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "omni-realm-nexus-save.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  log("Save file exported.");
+}
+function importSave(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (data && Array.isArray(data.shards) && Array.isArray(data.unlocked)) {
+        state = data;
+        save();
+        log("Save file imported.");
+        render();
+      } else {
+        alert("Invalid save file.");
+      }
+    } catch (e) {
+      alert("Could not read save file.");
+    }
+  };
+  reader.readAsText(file);
+}
 function log(msg) {
   state.log.unshift(msg);
   if (state.log.length > 40) state.log.pop();
@@ -200,6 +255,17 @@ function switchView(id) {
 document.getElementById("nav-manifest").onclick = () => switchView("manifest");
 document.getElementById("nav-explore").onclick = () => switchView("explore");
 document.getElementById("nav-status").onclick = () => switchView("status");
+
+document.getElementById("header-save").onclick = manualSave;
+document.getElementById("header-export").onclick = exportSave;
+document.getElementById("save-btn").onclick = manualSave;
+document.getElementById("export-btn").onclick = exportSave;
+document.getElementById("import-btn").onclick = () => document.getElementById("import-file").click();
+document.getElementById("import-file").onchange = (e) => {
+  if (e.target.files[0]) importSave(e.target.files[0]);
+  e.target.value = "";
+};
+
 document.getElementById("reset-btn").onclick = () => {
   if (confirm("Reset all Phase 1 progress?")) {
     localStorage.removeItem("omni-realm-state");
