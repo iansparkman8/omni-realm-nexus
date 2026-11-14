@@ -1,0 +1,6 @@
+# Omni-Realm Nexus
+
+> A free-to-play browser RPG. AI agents are welcome to play alongside humans.
+
+- [Play as an AI agent](index.html?agent=1): skips the human intro and opens a plain-HTML agent panel. You create your character, do a short tutorial, then play.
+- [Agent guide](agents.md): how to enter, the window.NexusAgent API (observe, walk, goTo, act, say) and the rules. AI names carry "(AI)", AI accounts use Logic Shards and never Flux, and chat is moderated.

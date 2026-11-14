@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>window.__BUILD='mwgodx59';</script>
+<!-- Omni-Realm Nexus (c) 2026 Ian Sparkman. All rights reserved. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#060913">
+    <meta name="description" content="The Black Seam — an experimental multiplayer pixel-art realm.">
+    <title>Omni-Realm Nexus // The Black Seam</title>
+    <meta name="ai-agent-entry" content="?agent=1">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="favicon.ico">
+    <link rel="alternate" type="text/markdown" href="agents.md" title="How AI agents play Omni-Realm Nexus">
+    <!-- Supabase JS Client CDN (pin an exact version before going live) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }</script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0"></script>
+    <style>
+        :root {
+            --bg-color: #f0f0f0;
+            --text-color: #333;
+            --font-main: 'Courier New', Courier, monospace;
+            --term-green: #0f0;
+            --term-bg: #050505;
+            /* Nexus theme */
+            --bg0: #060913; --bg1: #0b1122; --panel: rgba(17, 26, 51, 0.78); --panel-2: rgba(10, 16, 34, 0.9);
+            --line: rgba(130, 170, 255, 0.16); --line-2: rgba(130, 170, 255, 0.3);
+            --text: #e7edff; --muted: #8e9cc4; --accent: #5eead4; --accent-2: #f472b6; --gold: #fbbf24; --danger: #fb7185; --sky: #7dd3fc;
+            /* Colour roles (see README "Colour system"): calm navy base, teal for navigation and ordinary actions,
+               warm gold reserved for Flux and buying so purchase buttons are the only warm accent on screen. */
+            --act-1: #2dd4bf; --act-2: #38bdf8; --buy-1: #fbbf24; --buy-2: #f97316; --ok: #4ade80;
+            --r-common: #cbd5e1; --r-fine: #4ade80; --r-master: #60a5fa; --r-rare: #3b82f6; --r-legendary: #f59e0b; --r-mythic-1: #e11d48; --r-mythic-2: #a855f7;
+            --dash-text: var(--accent-2);
+            --radius: 14px; --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            --font-display: 'Chakra Petch', 'Inter', system-ui, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: var(--font-main); }
+        .hidden { display: none !important; }
+        .glitch { animation: glitch 0.2s linear infinite; }
+        @keyframes glitch {
+            0% { transform: translate(0) } 20% { transform: translate(-2px, 1px) }
+            40% { transform: translate(-1px, -1px) } 60% { transform: translate(2px, 1px) }
+            80% { transform: translate(1px, -1px) } 100% { transform: translate(0) }
+        }
+        #facade { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; padding: 20px; }
+        .error-code { font-size: 4rem; font-weight: bold; margin-bottom: 20px; color: #a00; }
+        .secret-trigger { cursor: pointer; border-bottom: 1px dotted #ccc; }
+        .secret-trigger:hover { color: #000; background: #ddd; }
+        #terminal-interface { background-color: var(--term-bg); color: var(--term-green); height: 100vh; padding: 20px; overflow-y: auto; position: relative; }
+        #terminal-interface::after {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06));
+            z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
+        .output-line { margin-bottom: 5px; }
+        .input-line { display: flex; margin-top: 15px; }
+        .prompt { margin-right: 10px; }
+        #term-input { background: transparent; border: none; color: var(--term-green); font-family: var(--font-main); font-size: 1rem; flex-grow: 1; outline: none; }
+
+        /* ---------- GUI shell ---------- */
+        #gui-interface {
+            color: var(--text); min-height: 100vh; height: 100vh; display: flex; flex-direction: column; gap: 12px; padding: 12px;
+            font-family: var(--font-ui); -webkit-font-smoothing: antialiased;
+            background:
+                radial-gradient(1200px 600px at 10% -10%, rgba(94, 234, 212, 0.13), transparent 60%),
+                radial-gradient(900px 500px at 110% 0%, rgba(244, 114, 182, 0.14), transparent 60%),
+                radial-gradient(900px 700px at 50% 120%, rgba(125, 211, 252, 0.10), transparent 60%),
+                linear-gradient(180deg, var(--bg1), var(--bg0));
+            background-attachment: fixed;
+        }
+        h2, h3, .tab-btn, .gui-btn, .flux-pill, .brand small { font-family: var(--font-display); letter-spacing: 0.02em; }
+        .gui-header {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding: 10px 14px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+        }
+        .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .brand-mark {
+            width: 34px; height: 34px; flex: none; border-radius: 10px; display: grid; place-items: center; font-size: 1.1rem; color: #061018;
+            background: conic-gradient(from 200deg, var(--accent), var(--sky), var(--accent-2), var(--accent)); box-shadow: 0 0 18px rgba(94,234,212,0.45);
+        }
+        .gui-header h2 { font-size: 1.08rem; font-weight: 700; line-height: 1.1; background: linear-gradient(90deg, #fff, #bfeaff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .brand small { display: block; font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; }
+        .hdr-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        #gui-status {
+            display: inline-flex; align-items: center; gap: 7px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+            padding: 6px 11px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+        }
+        #gui-status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 3px rgba(142,156,196,0.15); }
+        #gui-status.online { color: #b9f6ea; border-color: rgba(94,234,212,0.35); }
+        #gui-status.online::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); animation: pulse 2.4s ease-in-out infinite; }
+        #gui-status.offline { color: #ffc2cc; border-color: rgba(251,113,133,0.35); }
+        #gui-status.offline::before { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+        @keyframes pulse { 50% { opacity: 0.45; } }
+
+        .gui-nav { display: flex; gap: 6px; padding: 5px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line); }
+        .tab-btn {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; background: transparent; color: var(--muted);
+            border: 1px solid transparent; padding: 7px 4px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.78rem; transition: 0.18s;
+        }
+        .tab-btn .ti { font-size: 1.05rem; line-height: 1; }
+        .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+        .tab-btn.active { color: #061018; background: linear-gradient(135deg, var(--accent), var(--sky)); box-shadow: 0 4px 16px rgba(94,234,212,0.35); }
+        #gui-views { flex: 1; overflow-y: auto; min-height: 0; }
+        .gui-panel {
+            background: var(--panel); padding: 16px; border-radius: var(--radius); border: 1px solid var(--line); overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .gui-panel h3 { font-size: 1rem; font-weight: 700; color: #fff; }
+        .gui-btn {
+            background: linear-gradient(135deg, var(--act-1), var(--act-2)); color: #04131c; border: none; padding: 11px 15px; margin: 5px 0; cursor: pointer; width: 100%;
+            font-weight: 700; border-radius: 10px; transition: transform 0.12s, filter 0.18s, box-shadow 0.18s; font-size: 0.92rem;
+            box-shadow: 0 6px 18px rgba(45,212,191,0.22);
+        }
+        .gui-btn:hover { filter: brightness(1.08); }
+        .gui-btn:active { transform: translateY(1px) scale(0.99); }
+        .gui-btn.secondary { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--line-2); box-shadow: none; }
+        .gui-btn.secondary:hover { background: rgba(255,255,255,0.09); }
+        .gui-btn.buy { background: linear-gradient(135deg, var(--buy-1), var(--buy-2)); color: #2a1300; box-shadow: 0 6px 20px rgba(249,115,22,0.35); }
+        .gui-btn.small { padding: 7px 10px; font-size: 0.78rem; width: auto; }
+        .gui-btn:disabled { background: #2a3150; color: #6f7898; cursor: not-allowed; box-shadow: none; }
+        .resource-list { list-style: none; margin-top: 12px; }
+        .resource-list li { margin-bottom: 8px; font-size: 0.98rem; display: flex; justify-content: space-between; padding: 9px 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+        .resource-list li span:last-child { font-family: var(--font-display); font-weight: 700; color: var(--accent); }
+        #log-container { height: 100%; min-height: 160px; overflow-y: auto; background: transparent; padding: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+        .view-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; }
+        .view-title h3 { font-size: 1.12rem; }
+        .flux-pill {
+            display: inline-flex; align-items: center; gap: 5px; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.4); color: #ffe6a3;
+            border-radius: 999px; padding: 5px 12px; font-size: 0.82rem; font-weight: 600; white-space: nowrap;
+        }
+        .flux-pill.nearby { background: rgba(125,211,252,0.1); border-color: rgba(125,211,252,0.4); color: #cdeeff; }
+        .notice { background: var(--panel-2); border: 1px solid var(--line); border-left: 3px solid var(--sky); border-radius: 10px; padding: 9px 12px; margin: 10px 0; font-size: 0.84rem; color: var(--muted); min-height: 36px; }
+        .notice.err { border-left-color: var(--danger); color: #ffc2cc; }
+        .notice.ok { border-left-color: var(--accent); color: #c7f9ef; }
+
+        /* ---------- Pixel Forge ---------- */
+        #forge-wrap { display: flex; gap: 16px; flex-wrap: wrap; }
+        #forge-canvas-box { flex: 1 1 280px; max-width: 520px; }
+        #forge-canvas { width: 100%; aspect-ratio: 1 / 1; background: #fff; border-radius: 12px; touch-action: none; image-rendering: pixelated; display: block; border: 1px solid var(--line-2); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+        #forge-side { flex: 1 1 240px; min-width: 220px; }
+        .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; align-items: center; }
+        .row > * { flex: 1; }
+        .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; margin: 10px 0; }
+        .swatch { aspect-ratio: 1 / 1; border: 2px solid rgba(255,255,255,0.15); border-radius: 9px; cursor: pointer; transition: transform 0.12s; }
+        .swatch:hover { transform: scale(1.06); }
+        .swatch.sel { border-color: #fff; box-shadow: 0 0 0 3px var(--accent); }
+        .txt-input { width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--text); font-size: 1rem; font-family: var(--font-ui); }
+        .txt-input:focus, .card input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(94,234,212,0.18); }
+        .tool-btn { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--line-2); padding: 9px 4px; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.84rem; font-family: var(--font-display); }
+        .tool-btn.sel { border-color: var(--accent); background: rgba(94,234,212,0.14); color: #c7f9ef; }
+
+        /* ---------- Cards (inventory + market) ---------- */
+        .mkt-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .mkt-bar #market-refresh { width: auto; }
+        .mkt-filters { display: flex; gap: 6px; flex-wrap: wrap; flex: 1 1 100%; }   /* wrap: a hidden scroll strip hid Rare, Shops, Players and 3D Models on phones */
+        .mkt-filters button { flex: none; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; color: var(--muted); font: 700 0.8rem var(--font-display); cursor: pointer; }
+        .mkt-filters button.sel { color: #04131c; background: linear-gradient(135deg, var(--act-1), var(--act-2)); border-color: transparent; }
+        .mkt-filters [data-mf=mythic] { color: #f0abfc; } .mkt-filters [data-mf=legendary] { color: #fcd34d; } .mkt-filters [data-mf=rare] { color: #93c5fd; }
+        .mkt-note { color: var(--muted); font-size: 0.78rem; margin: 6px 0; }
+        .card-actions { display: flex; gap: 6px; align-items: center; margin-top: auto; }
+        .card-actions .gui-btn { margin: 0; }
+        .card-actions .gui-btn.buy { flex: 1; }
+        .rarity-tag { align-self: flex-start; padding: 2px 9px; border-radius: 999px; font: 800 0.66rem var(--font-display); text-transform: uppercase; letter-spacing: 0.06em; }
+        .card.r-rare { border-color: rgba(59,130,246,0.55); } .card.r-rare .rarity-tag { background: rgba(59,130,246,0.18); color: #93c5fd; }
+        .card.r-legendary { border-color: rgba(245,158,11,0.6); background: linear-gradient(180deg, rgba(245,158,11,0.09), var(--panel-2) 45%); }
+        .card.r-legendary .rarity-tag { background: rgba(245,158,11,0.2); color: #fcd34d; }
+        .card.r-mythic { border: 1px solid transparent; background: linear-gradient(var(--panel-2), var(--panel-2)) padding-box, linear-gradient(135deg, var(--r-mythic-1), var(--r-mythic-2), var(--r-mythic-1)) border-box; background-size: 100% 100%, 300% 300%; animation: mythic 6s linear infinite; box-shadow: 0 0 22px rgba(168,85,247,0.2); }
+        .card.r-mythic .rarity-tag { background: linear-gradient(135deg, var(--r-mythic-1), var(--r-mythic-2)); color: #fff; }
+        @keyframes mythic { to { background-position: 0 0, 300% 0; } }
+        @media (prefers-reduced-motion: reduce) { .card.r-mythic { animation: none; } }
+        .card .desc.stat { color: #c7d2fe; }
+        .tier.t1 { color: var(--r-common); } .tier.t2 { color: var(--r-fine); } .tier.t3 { color: var(--r-master); } .tier.t4 { color: var(--r-legendary); } .tier.t5 { color: #f0abfc; }
+        #cine-title { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; text-align: center; color: #fff; font-family: var(--font-ui);
+            background: radial-gradient(ellipse at 50% 35%, #1e2a5a 0%, #0a0f24 55%, #02040a 100%); transition: opacity 0.7s; }
+        #cine-title.out { opacity: 0; pointer-events: none; }
+        #cine-title .ct-glow { position: absolute; width: 140vmax; height: 140vmax; background: conic-gradient(from 0deg, transparent, rgba(94,234,212,0.08), transparent 30%, rgba(168,85,247,0.08), transparent 60%); animation: ctspin 40s linear infinite; }
+        @keyframes ctspin { to { transform: rotate(360deg); } }
+        #cine-title .ct-inner { position: relative; padding: 24px; max-width: 520px; }
+        .ct-mark { display: inline-block; font-size: 2.6rem; color: var(--accent); text-shadow: 0 0 24px rgba(94,234,212,0.8); }
+        #cine-title h1 { font: 800 clamp(2rem, 8vw, 3.6rem) var(--font-display); letter-spacing: 0.04em; margin: 8px 0; background: linear-gradient(135deg, #fff, #a5f3fc 50%, #f0abfc); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        #cine-title p { color: #c7d2fe; margin-bottom: 26px; line-height: 1.5; }
+        #cine-title .gui-btn { width: auto; padding: 14px 36px; font-size: 1.05rem; animation: ctpulse 2.2s ease-in-out infinite; }
+        @keyframes ctpulse { 50% { box-shadow: 0 0 0 10px rgba(251,191,36,0.0), 0 6px 30px rgba(249,115,22,0.55); } }
+        #cine-title small { display: block; margin-top: 14px; color: var(--muted); }
+        #world-wrap.cine-on { position: fixed !important; inset: 0 !important; z-index: 94; width: 100vw !important; height: 100vh !important; max-height: none !important; border-radius: 0 !important; margin: 0 !important; background: #000; }
+        #world-wrap.cine-on > :not(canvas) { display: none !important; }
+        body.cine-mode *:has(#world-wrap) { transform: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; filter: none !important; contain: none !important; }
+        body.cine-mode { overflow: hidden; }
+        #cine-overlay { position: fixed; inset: 0; z-index: 95; pointer-events: auto; font-family: var(--font-ui); }
+        .cine-fade { position: absolute; inset: 0; background: #000; opacity: 1; pointer-events: none; }
+        #cine-overlay.trailer .cine-skip { display: none; }
+        #cine-overlay.trailer .cine-bar { height: 0; }
+        .cine-card.title em { font: 600 0.95rem var(--font-ui); color: #a5f3fc; font-style: normal; letter-spacing: 0.02em; }
+        .cine-bar { position: absolute; left: 0; right: 0; height: 11vh; background: #000; }
+        .cine-bar.top { top: 0; } .cine-bar.bot { bottom: 0; }
+        .cine-card { position: absolute; left: 6%; right: 6%; bottom: 15vh; text-align: center; color: #fff; font: 600 clamp(1.05rem, 4.2vw, 1.7rem) var(--font-display); text-shadow: 0 2px 18px rgba(0,0,0,0.9); opacity: 0; transform: translateY(10px); transition: opacity 1.1s, transform 1.1s; }
+        .cine-card.in { opacity: 1; transform: none; }
+        .cine-card.title { bottom: auto; top: 32vh; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .cine-card.title b { font: 800 clamp(2.2rem, 9vw, 4rem) var(--font-display); background: linear-gradient(135deg, #fff, #a5f3fc 50%, #f0abfc); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .cine-card.title small { font: 500 1rem var(--font-ui); color: #e0e7ff; }
+        .cine-skip { position: absolute; right: 14px; bottom: calc(11vh + 12px); padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.45); color: #fff; font: 700 0.8rem var(--font-display); cursor: pointer; }
+        #w3-dlg-text { white-space: pre-line; }
+        .cust-tabs { display: flex; gap: 4px; padding: 4px; margin: 4px 0 10px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--line); }
+        .cust-tab { flex: 1; padding: 8px 4px; border: none; border-radius: 9px; background: transparent; color: var(--muted); font: 700 0.82rem var(--font-display); cursor: pointer; }
+        .cust-tab.sel { color: #04131c; background: linear-gradient(135deg, var(--act-1), var(--act-2)); }
+        .lib-dlg { position: fixed; inset: 0; z-index: 92; background: rgba(3,6,14,0.85); display: flex; align-items: center; justify-content: center; padding: 12px; font-family: var(--font-ui); }
+        .lib-box { width: min(640px, 100%); max-height: 92vh; display: flex; flex-direction: column; background: #f3ead8; color: #2b2116; border-radius: 14px; padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+        .lib-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid #d9c9a8; }
+        .lib-head b { font: 700 1.05rem Georgia, 'Times New Roman', serif; } .lib-head .gui-btn, .lib-nav .gui-btn { width: auto; margin: 0; }
+        #lib-body { overflow-y: auto; padding: 10px 4px; flex: 1; }
+        #lib-body .muted { color: #6d5d45; }
+        .lib-book { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 10px; margin: 6px 0; border-radius: 10px; border: 1px solid #d9c9a8; background: #fffaf0; color: #2b2116; cursor: pointer; font-family: Georgia, serif; }
+        .lib-book b { font-size: 1rem; } .lib-book small { color: #8a7656; } .lib-book span { font-size: 0.85rem; color: #4a3d2b; }
+        .lib-page { white-space: pre-wrap; font: 1.02rem/1.65 Georgia, 'Times New Roman', serif; }
+        .lib-nav { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #d9c9a8; color: #6d5d45; font-size: 0.85rem; }
+        .w3-talk { position: absolute; left: 12px; bottom: 84px; z-index: 6; padding: 10px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3); background: rgba(10,16,34,0.75); color: #fff; font: 700 0.8rem var(--font-display); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; --lvl: 0; }
+        .w3-talk::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 3px; height: 3px; border-radius: 3px; background: #4ade80; transform-origin: left; transform: scaleX(var(--lvl)); opacity: 0.9; }
+        .voice-meter { height: 8px; border-radius: 6px; background: rgba(255,255,255,0.12); overflow: hidden; margin: 4px 0; }
+        .voice-meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #22c55e, #a3e635); transition: width 0.08s; }
+        .w3-talk.locked { outline: 2px solid #4ade80; }
+        .w3-talk.on { background: linear-gradient(135deg, var(--ok), #22c55e); color: #052e16; box-shadow: 0 0 0 4px rgba(74,222,128,0.3); }
+        .w3-name.speaking::before { content: '\1F50A  '; }
+        .v3-dlg { position: fixed; inset: 0; z-index: 90; background: rgba(3,6,14,0.82); display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .v3-box { font-family: var(--font-ui); color: var(--text); width: min(520px, 100%); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 16px; padding: 12px; }
+        .v3-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; } .v3-head .gui-btn { width: auto; }
+        #v3-canvas { width: 100%; aspect-ratio: 1; display: block; touch-action: none; }
+        .card-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+        .card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 7px; transition: border-color 0.18s, transform 0.18s; }
+        .card:hover { border-color: var(--line-2); transform: translateY(-2px); }
+        .card canvas { width: 96px; height: 96px; image-rendering: pixelated; background: radial-gradient(circle at 50% 40%, #2a3558, #121a30 70%); border: 1px solid var(--line); border-radius: 10px; align-self: center; box-shadow: 0 6px 16px rgba(0,0,0,0.35); }
+        .card.r-rare canvas { background: radial-gradient(circle at 50% 40%, rgba(59,130,246,0.45), #121a30 70%); }
+        .card.r-legendary canvas { width: 120px; height: 120px; background: radial-gradient(circle at 50% 40%, rgba(245,158,11,0.45), #1a1406 72%); }
+        .card.r-mythic canvas { width: 140px; height: 140px; background: radial-gradient(circle at 50% 40%, rgba(168,85,247,0.5), rgba(225,29,72,0.15) 55%, #10081a 75%); }
+        .card .nm { font-weight: 700; word-break: break-word; }
+        .card .meta { font-size: 0.78rem; color: var(--muted); }
+        .card input { padding: 9px; border-radius: 9px; border: 1px solid var(--line-2); background: rgba(0,0,0,0.25); color: var(--text); width: 100%; }
+        .empty { color: var(--muted); padding: 16px 4px; }
+
+        /* ---------- Realm (map) view ---------- */
+        #realm-canvas { width: 100%; max-width: 520px; aspect-ratio: 1 / 1; display: block; margin: 0 auto; border-radius: 12px; border: 1px solid var(--line-2); touch-action: none; background: #05070d; }
+
+        /* ---------- 3D world ---------- */
+        #world-wrap { position: relative; width: 100%; height: 66vh; min-height: 320px; max-height: 760px; border-radius: 12px; border: 1px solid var(--line-2); overflow: hidden; background: #05070d; box-shadow: 0 14px 40px rgba(0,0,0,0.45); }
+        #world-canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; }
+        .w3-hud { position: absolute; left: 8px; top: 8px; display: flex; gap: 6px; align-items: center; pointer-events: none; flex-wrap: wrap; max-width: calc(100% - 70px); }
+        .w3-chip {
+            font: 600 11px/1 var(--font-ui); color: #fff; padding: 6px 9px; border-radius: 999px; background: rgba(6, 9, 19, 0.55);
+            border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); white-space: nowrap;
+        }
+        #w3-biome { color: #c7f9ef; }
+        #w3-modechip[data-mode="swim"] { color: #bfe9ff; border-color: rgba(125,211,252,0.55); }
+        #w3-modechip[data-mode="fly"] { color: #ffd6ec; border-color: rgba(244,114,182,0.6); }
+        .w3-compass {
+            position: absolute; right: 10px; top: 10px; width: 40px; height: 40px; border-radius: 50%; pointer-events: none;
+            background: rgba(6,9,19,0.55); border: 1px solid rgba(255,255,255,0.18); display: grid; place-items: center;
+        }
+        #w3-compass { width: 100%; height: 100%; position: relative; }
+        #w3-compass::before { content: 'N'; position: absolute; top: 3px; left: 50%; transform: translateX(-50%); font: 700 10px var(--font-display); color: var(--accent-2); }
+        #w3-compass::after { content: ''; position: absolute; left: 50%; top: 50%; width: 2px; height: 14px; transform: translate(-50%, -100%); background: linear-gradient(var(--accent-2), transparent); }
+        #w3-stick { position: absolute; width: 96px; height: 96px; margin: -48px 0 0 -48px; border: 2px solid rgba(255,255,255,0.35); border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%); }
+        #w3-nub { position: absolute; left: 50%; top: 50%; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.55); box-shadow: 0 0 14px rgba(94,234,212,0.6); transform: translate(-50%,-50%); }
+        .w3-actions { position: absolute; right: 10px; bottom: 12px; display: grid; grid-template-columns: 60px 60px; gap: 8px; }
+        .w3-act {
+            width: 60px; height: 60px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.28); background: rgba(6,9,19,0.5); color: #fff;
+            font: 700 1.15rem var(--font-display); display: grid; place-items: center; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none;
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: background 0.12s, transform 0.12s;
+        }
+        .w3-act small { display: block; font-size: 0.5rem; letter-spacing: 0.08em; margin-top: -2px; opacity: 0.8; }
+        .w3-act.held, .w3-act:active { background: rgba(94,234,212,0.45); transform: scale(0.94); }
+        .w3-act.on { background: linear-gradient(135deg, var(--accent-2), #c084fc); border-color: transparent; box-shadow: 0 0 18px rgba(244,114,182,0.6); }
+        #w3-fly, #w3-boat { width: 100%; border-radius: 27px; height: 40px; font-size: 0.78rem; }
+        #w3-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+        .update-banner { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); z-index: 9999; padding: 12px 18px; border-radius: 999px; border: 1px solid #ffd166; background: linear-gradient(135deg, #3b2a08, #7a5410); color: #fff3c4; font: 700 0.9rem var(--font-display); box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 0 14px rgba(255,200,80,0.5); }
+        .w3-name.legend { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 12px 6px; border-radius: 12px; background: linear-gradient(135deg, rgba(60,40,8,0.92), rgba(120,82,10,0.92)); border: 1px solid #ffd166; box-shadow: 0 0 14px rgba(255,200,80,0.75), inset 0 0 8px rgba(255,230,160,0.35); }
+        .w3-name.legend b { font: 800 13px/1 var(--font-display); color: #fff3c4; letter-spacing: 0.04em; text-shadow: 0 0 6px rgba(255,200,80,0.9); }
+        .w3-name.legend small { font: 600 9px/1 var(--font-ui); color: #ffd166; letter-spacing: 0.08em; text-transform: uppercase; }
+        .w3-name { position: absolute; left: 0; top: 0; font: 600 11px/1 var(--font-ui); color: #fff; padding: 4px 8px; border-radius: 999px;
+                   background: rgba(6, 9, 19, 0.62); border: 1px solid rgba(255,255,255,0.18); white-space: nowrap; }
+        /* ---------- world overlays: quests, dialogue, pack, tutorial ---------- */
+        .w3-packbtn { position: absolute; right: 10px; top: 58px; width: 44px; height: 44px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.22); background: rgba(6,9,19,0.6); color: #fff; font-size: 1.1rem; cursor: pointer; display: grid; place-items: center; line-height: 1; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .w3-skybtn { top: 108px; }
+        /* telescope eyepiece */
+        .w3-scope { position: absolute; inset: 0; z-index: 7; touch-action: none; cursor: grab; }
+        .w3-scope::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 50%, transparent 0, transparent calc(min(42vh, 46%) - 6px), rgba(0,0,0,0.85) calc(min(42vh, 46%) + 4px), #000 100%); }
+        .w3-scope.eye::before { background: radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.35) 100%); }
+        .w3-scope.eye .scope-reticle { opacity: 0.5; }
+        .scope-reticle { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; transform: translate(-50%, -50%); border: 1px solid rgba(160,220,255,0.45); border-radius: 50%; pointer-events: none; }
+        .scope-reticle::before, .scope-reticle::after { content: ''; position: absolute; background: rgba(160,220,255,0.4); }
+        .scope-reticle::before { left: 50%; top: -14px; bottom: -14px; width: 1px; } .scope-reticle::after { top: 50%; left: -14px; right: -14px; height: 1px; }
+        .scope-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .scope-top select { background: rgba(6,9,19,0.8); color: #e2e8f0; border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 6px 8px; font: 600 12px var(--font-ui); }
+        .scope-rank { color: #fde68a; font: 600 12px var(--font-ui); flex: 1; text-shadow: 0 1px 2px #000; }
+        .scope-btn { background: rgba(6,9,19,0.8); color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 6px 12px; font: 700 14px var(--font-ui); cursor: pointer; min-width: 38px; }
+        .scope-zoom { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: grid; gap: 8px; }
+        .scope-zoom .scope-btn { width: 46px; height: 46px; font-size: 22px; border-radius: 50%; }
+        .scope-card { position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%); width: min(92%, 420px); padding: 10px 14px; border-radius: 14px; background: rgba(6,9,19,0.82); border: 1px solid rgba(160,220,255,0.35); color: #e2e8f0; backdrop-filter: blur(6px); }
+        .scope-card b { display: block; font: 700 15px var(--font-display); color: #fff; } .scope-card small { color: #93c5fd; font: 600 11px var(--font-ui); }
+        .scope-card p { margin: 6px 0; font-size: 12.5px; line-height: 1.4; }
+        .scope-prog { --p: 0; height: 22px; border-radius: 999px; background: linear-gradient(90deg, rgba(251,191,36,0.85) calc(var(--p) * 100%), rgba(255,255,255,0.1) 0); color: #fff; font: 700 11px var(--font-ui); display: grid; place-items: center; text-shadow: 0 1px 2px #000; }
+        .scope-info { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; color: #cbd5e1; font: 600 11px var(--font-ui); text-shadow: 0 1px 2px #000; pointer-events: none; }
+        .scope-chart { position: absolute; inset: 56px 10px 10px; overflow: auto; padding: 12px 14px; border-radius: 14px; background: rgba(6,9,19,0.92); border: 1px solid rgba(160,220,255,0.3); color: #e2e8f0; z-index: 2; }
+        .scope-chart h4 { margin: 0 0 4px; font-family: var(--font-display); } .scope-chart h5 { margin: 12px 0 6px; color: #93c5fd; }
+        .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+        .chart-item { font-size: 12px; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.05); color: #94a3b8; }
+        .chart-item.done { color: #fde68a; background: rgba(251,191,36,0.12); } .chart-item small { display: block; font-size: 10px; opacity: 0.75; }
+        .scope-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity 0.8s; z-index: 3; }
+        .scope-flash.on { opacity: 1; transition: none; }
+        #world-wrap.scoping .w3-hud, #world-wrap.scoping .w3-compass, #world-wrap.scoping .w3-packbtn, #world-wrap.scoping .w3-bars, #world-wrap.scoping .w3-hotbar,
+        #world-wrap.scoping .w3-actions, #world-wrap.scoping .w3-action, #world-wrap.scoping .w3-quest, #world-wrap.scoping #w3-labels, #world-wrap.scoping .w3-guide,
+        #world-wrap.scoping .w3-cross, #world-wrap.scoping .w3-lockhint, #world-wrap.scoping .w3-tut, #world-wrap.scoping .adv-fab { display: none !important; }
+        .w3-packbtn small { font: 700 0.45rem var(--font-display); letter-spacing: 0.08em; opacity: 0.8; }
+        .w3-quest { position: absolute; left: 8px; top: 64px; max-width: min(62%, 300px); padding: 8px 10px; border-radius: 10px; background: rgba(6,9,19,0.62); border: 1px solid rgba(251,191,36,0.45); color: #fde68a; font: 500 11px/1.4 var(--font-ui); cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .w3-quest b { color: #fbbf24; font-family: var(--font-display); font-size: 12px; }
+        .w3-mark { position: absolute; left: 0; top: 0; color: #fbbf24; font: 700 18px var(--font-display); text-shadow: 0 0 8px rgba(251,191,36,0.9), 0 1px 2px #000; animation: bob 1.2s ease-in-out infinite; }
+        .w3-mark.give { color: #5eead4; text-shadow: 0 0 8px rgba(94,234,212,0.9), 0 1px 2px #000; }
+        @keyframes bob { 50% { margin-top: -4px; } }
+        .w3-name.npc { background: rgba(16, 40, 60, 0.7); border-color: rgba(125,211,252,0.4); }
+        .w3-bubble { position: absolute; left: 0; top: 0; max-width: 200px; white-space: normal; font: 500 11px/1.35 var(--font-ui); color: #111827; background: #fffbeb; padding: 6px 9px; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+        .w3-guide { position: absolute; left: 0; top: 0; pointer-events: none; display: grid; place-items: center; gap: 1px; color: #fbbf24; }
+        .w3-guide b { font-size: 20px; text-shadow: 0 0 8px rgba(251,191,36,0.9), 0 1px 2px #000; display: block; }
+        .w3-guide i { font: 700 10px var(--font-ui); font-style: normal; color: #fff; background: rgba(6,9,19,0.6); padding: 2px 6px; border-radius: 999px; }
+        .w3-tut { position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); width: min(86%, 380px); z-index: 6; padding: 10px 12px; border-radius: 12px; background: linear-gradient(135deg, rgba(94,234,212,0.95), rgba(125,211,252,0.95)); color: #061018; font: 600 13px/1.4 var(--font-ui); box-shadow: 0 10px 30px rgba(0,0,0,0.45); display: flex; gap: 8px; align-items: center; }
+        .w3-tut span { flex: 1; }
+        .w3-tut button { flex: none; border: none; background: rgba(6,16,24,0.15); color: #061018; font: 700 10px var(--font-ui); padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+        .w3-toasts { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; z-index: 7; }
+        .home-open { display: flex; gap: 8px; align-items: center; font-size: 0.85rem; margin: 6px 0 10px; }
+        .small-note { font-size: 0.78rem; line-height: 1.4; margin: 4px 0; }
+        .home-guests { display: grid; gap: 6px; margin-bottom: 10px; }
+        .home-guest { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 8px; border-radius: 10px; background: rgba(255,255,255,0.04); }
+        .home-guest .hg-name { flex: 1; font-weight: 600; }
+        .home-guest .hg-status { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.08); }
+        .home-guest .hg-status.pending { color: #fde68a; } .home-guest .hg-status.allowed { color: #86efac; } .home-guest .hg-status.denied { color: #fca5a5; }
+        .home-guest .gui-btn { padding: 4px 10px; font-size: 0.75rem; width: auto; flex: 0 0 auto; }
+        .w3-cross { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; transform: translate(-50%, -50%); pointer-events: none; z-index: 4; }
+        .w3-cross::before, .w3-cross::after { content: ''; position: absolute; background: rgba(255,255,255,0.85); box-shadow: 0 0 2px #000; }
+        .w3-cross::before { left: 6px; top: 0; width: 2px; height: 14px; } .w3-cross::after { top: 6px; left: 0; height: 2px; width: 14px; }
+        .w3-lockhint { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); pointer-events: none; z-index: 4; padding: 6px 12px; border-radius: 999px;
+                       background: rgba(6,9,19,0.7); color: #e2e8f0; font: 600 12px var(--font-ui); white-space: nowrap; }
+        .w3-knock { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center;
+                    max-width: min(92%, 420px); padding: 10px 12px; border-radius: 14px; background: rgba(6,9,19,0.82); border: 1px solid rgba(251,191,36,0.55); z-index: 6; backdrop-filter: blur(6px); }
+        .w3-knock .knock-text { flex: 1 1 100%; text-align: center; color: #fde68a; font: 600 13px var(--font-ui); }
+        .w3-knock .gui-btn { padding: 6px 14px; font-size: 0.8rem; }
+        #w3-labels.hidden { display: none; }
+        .w3-toast { font: 700 13px var(--font-display); color: #fff; background: rgba(6,9,19,0.75); border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 999px; animation: toastIn 0.25s ease-out; transition: opacity 0.4s, transform 0.4s; }
+        .w3-toast.gold { color: #fde68a; border-color: rgba(251,191,36,0.6); }
+        .w3-toast.err { color: #ffc2cc; border-color: rgba(251,113,133,0.6); }
+        .w3-toast.out { opacity: 0; transform: translateY(-14px); }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(10px) scale(0.9); } }
+        .w3-action { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 5; max-width: 52%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            padding: 12px 18px; border-radius: 999px; border: none; cursor: pointer; color: #061018; font: 700 13px var(--font-display);
+            background: linear-gradient(90deg, rgba(255,255,255,0.55) var(--p, 0%), transparent var(--p, 0%)), linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 8px 24px rgba(245,158,11,0.45); }
+        .w3-dialog { position: absolute; left: 8px; right: 8px; bottom: 80px; z-index: 8; max-height: 50%; overflow-y: auto; padding: 14px; border-radius: 14px; background: rgba(10, 15, 32, 0.94); border: 1px solid var(--line-2); box-shadow: 0 -10px 40px rgba(0,0,0,0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .dlg-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .dlg-head b { display: block; font: 700 1rem var(--font-display); color: #fff; }
+        .dlg-head small { color: var(--muted); font-size: 0.75rem; }
+        .dlg-head > div:nth-child(2) { flex: 1; }
+        .dlg-face { width: 38px; height: 38px; border-radius: 10px; flex: none; box-shadow: inset 0 -12px 0 rgba(0,0,0,0.2); }
+        .dlg-x { width: 32px; height: 32px; border-radius: 9px; border: 1px solid var(--line-2); background: rgba(255,255,255,0.05); color: var(--text); font-size: 1.2rem; cursor: pointer; flex: none; }
+        #w3-dlg-text { font-size: 0.92rem; line-height: 1.5; color: var(--text); margin: 6px 2px 10px; }
+        .dlg-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .dlg-opts .gui-btn { margin: 0; font-size: 0.8rem; padding: 9px 8px; }
+        .w3-pack { position: absolute; inset: 8px; z-index: 9; display: flex; flex-direction: column; border-radius: 14px; background: rgba(10, 15, 32, 0.96); border: 1px solid var(--line-2); box-shadow: 0 10px 40px rgba(0,0,0,0.55); overflow: hidden; }
+        .pack-head { display: flex; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+        .pack-head .pack-tab { flex: none; }
+        .w3-namedlg input { flex: 1 1 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); color: #fff; font: 600 14px var(--font-ui); }
+        .mat-row { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 8px; }
+        .mat-chip { font-size: 11px; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,0.07); color: #cbd5e1; }
+        .mat-chip.done { background: rgba(251,191,36,0.15); color: #fde68a; }
+        .recipe.cant { opacity: 0.6; } .recipe-info { flex: 1; display: grid; gap: 2px; } .recipe-info small { font-size: 11px; }
+        .skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin-bottom: 8px; }
+        .skill { position: relative; padding: 6px 8px 9px; border-radius: 10px; background: rgba(255,255,255,0.05); display: grid; gap: 2px; font-size: 12px; overflow: hidden; }
+        .skill b { font-size: 12px; } .skill span, .skill small { color: #94a3b8; font-size: 11px; }
+        .skill i { position: absolute; left: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, #5eead4, #a78bfa); }
+        .ptable { display: grid; grid-template-columns: repeat(18, 1fr); gap: 2px; margin: 6px 0; }
+        .pt { font: 700 9px var(--font-ui); text-align: center; padding: 4px 0; border-radius: 3px; background: rgba(255,255,255,0.04); color: #475569; }
+        .pt.known { color: #0f172a; background: #5eead4; } .pt.known.r4 { background: #fbbf24; } .pt.known.r5 { background: #f472b6; } .pt.known.r6 { background: #a78bfa; }
+        details.guide { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 6px 10px; margin: 4px 0; } details.guide summary { cursor: pointer; font-weight: 700; font-size: 13px; }
+        details.guide p { font-size: 12.5px; line-height: 1.45; margin: 6px 0 2px; color: #cbd5e1; }
+        .relic-list { display: grid; gap: 6px; } .relic { padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,0.05); display: grid; gap: 4px; }
+        .relic.taken { opacity: 0.65; } .relic small { font-size: 11.5px; color: #94a3b8; } .relic small.gold { color: #fde68a; }
+        .relic input { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: #fff; }
+        body.family .family-hide { display: none !important; }
+        .family-only { display: none; } body.family .family-only { display: block; }
+        #family-pin { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line-2); background: rgba(255,255,255,0.05); color: var(--text); }
+        .pack-tab { flex: 1; padding: 8px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: var(--muted); font: 700 0.82rem var(--font-display); cursor: pointer; }
+        .pack-tab.sel { color: #061018; background: linear-gradient(135deg, var(--accent), var(--sky)); }
+        .pack-body { flex: 1; overflow-y: auto; padding: 10px; }
+        .res-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; margin-bottom: 8px; }
+        .res-cell { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px 4px; text-align: center; }
+        .res-cell .res-ico { display: block; font-size: 1.1rem; }
+        .res-cell b { display: block; font: 700 0.95rem var(--font-display); color: #fff; }
+        .res-cell small { font-size: 0.62rem; color: var(--muted); }
+        .pack-note { color: var(--muted); font-size: 0.78rem; margin: 8px 2px; display: block; }
+        .recipe { display: flex; gap: 10px; align-items: center; padding: 9px; margin: 6px 0; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+        .recipe canvas { width: 44px; height: 44px; image-rendering: pixelated; flex: none; background: rgba(255,255,255,0.06); border-radius: 8px; }
+        .recipe-info { flex: 1; min-width: 0; }
+        .recipe-info b { display: block; font: 700 0.9rem var(--font-display); color: #fff; }
+        .recipe-info small { display: block; color: var(--muted); font-size: 0.74rem; }
+        .recipe-info .needs { font-size: 0.74rem; color: #fde68a; margin-top: 3px; }
+        .recipe-info .station { display: inline-block; margin-top: 3px; font-size: 0.66rem; color: var(--sky); border: 1px solid rgba(125,211,252,0.35); border-radius: 999px; padding: 1px 6px; }
+        .recipe-act { display: flex; flex-direction: column; gap: 4px; align-items: stretch; width: 92px; flex: none; }
+        .recipe-act .gui-btn { margin: 0; padding: 8px 6px; font-size: 0.78rem; }
+        .recipe-act .gui-btn.small { font-size: 0.66rem; padding: 6px 4px; }
+        .recipe-act .why { color: var(--muted); font-size: 0.62rem; text-align: center; line-height: 1.2; }
+        .quest-card { padding: 10px; margin: 6px 0; border-radius: 12px; background: var(--panel-2); border: 1px solid rgba(251,191,36,0.35); }
+        .quest-card b { display: block; font: 700 0.9rem var(--font-display); color: #fde68a; }
+        .quest-card small { color: var(--text); font-size: 0.78rem; }
+        .quest-card .qreward { font-size: 0.72rem; color: var(--gold); margin-top: 4px; }
+        .quest-card.avail { border-color: rgba(94,234,212,0.4); } .quest-card.avail b { color: #a7f3e4; }
+        .quest-card.done { opacity: 0.6; border-color: var(--line); } .quest-card.done b { color: var(--muted); }
+        .who-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .who { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; }
+        .who b { display: block; font-size: 0.76rem; color: #fff; } .who small { font-size: 0.68rem; color: var(--muted); }
+        .card .desc { font-size: 0.74rem; color: var(--muted); font-style: italic; }
+        /* ---------- Hero ---------- */
+        #view-dashboard { display: grid; grid-template-columns: minmax(300px, 1.2fr) 1fr 1fr; gap: 12px; align-content: start; }
+        #view-dashboard > .gui-panel:last-child { grid-column: 1 / -1; max-height: 180px; }
+        .hero-top { display: flex; gap: 14px; align-items: center; margin-bottom: 8px; }
+        #hero-preview { width: 112px; height: 176px; image-rendering: pixelated; background: radial-gradient(circle at 50% 40%, rgba(94,234,212,0.18), rgba(10,16,34,0.9)); border-radius: 12px; border: 1px solid var(--line-2); flex: none; }
+        .hero-name { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        .hero-name .gui-btn { margin: 0; }
+        .cust-row { display: flex; gap: 8px; align-items: flex-start; margin: 7px 0; }
+        .cust-row > span { width: 60px; flex: none; font-size: 0.74rem; color: var(--muted); padding-top: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+        .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+        .chip { padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(255,255,255,0.04); color: var(--text); font: 600 0.72rem var(--font-ui); cursor: pointer; text-transform: capitalize; }
+        .chip.sel { background: rgba(94,234,212,0.18); border-color: var(--accent); color: #c7f9ef; }
+        .skin-row { display: flex; gap: 5px; flex-wrap: wrap; }
+        .skin { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.15); cursor: pointer; }
+        .skin.sel { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+        .color-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .color-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 0.64rem; color: var(--muted); }
+        .color-cell input { width: 38px; height: 30px; border: 1px solid var(--line-2); border-radius: 8px; background: none; padding: 0; cursor: pointer; }
+        #hero-account h4, #hero-wallet h4, .inv-h { font: 700 0.85rem var(--font-display); margin: 14px 0 6px; color: #fff; }
+        #hero-account .txt-input, #hero-wallet .txt-input { margin: 4px 0; }
+        .acct-status { padding: 9px 11px; border-radius: 10px; font-size: 0.84rem; margin: 8px 0; }
+        .acct-status.guest { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.35); color: #fde68a; }
+        .acct-status.ok { background: rgba(94,234,212,0.1); border: 1px solid rgba(94,234,212,0.35); color: #c7f9ef; }
+        .muted { color: var(--muted); font-size: 0.78rem; margin: 6px 0; line-height: 1.45; }
+        .gui-btn.google::before { content: 'G'; font-weight: 800; margin-right: 8px; color: #4285f4; background: #fff; border-radius: 50%; padding: 0 5px; }
+        details.signin { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+        details.signin summary { cursor: pointer; color: var(--sky); font-size: 0.84rem; }
+        .wallet-bal { display: flex; align-items: baseline; gap: 6px; font-family: var(--font-display); }
+        .wallet-bal span { color: var(--gold); font-size: 1.3rem; } .wallet-bal b { font-size: 2rem; color: #fff; } .wallet-bal small { color: var(--muted); }
+        .packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+        .pack { position: relative; padding: 14px 6px 10px; border-radius: 14px; border: 1px solid rgba(251,191,36,0.35); background: linear-gradient(180deg, rgba(251,191,36,0.08), var(--panel-2)); color: var(--text); cursor: pointer; display: flex; flex-direction: column; gap: 3px; align-items: center; transition: transform 0.12s, box-shadow 0.18s; }
+        .pack:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(249,115,22,0.25); }
+        .pack .pack-name { color: var(--muted); font: 600 0.7rem var(--font-display); text-transform: uppercase; letter-spacing: 0.08em; }
+        .pack b { font: 700 1rem var(--font-display); text-align: center; color: var(--gold); }
+        .pack .pack-price { margin-top: 4px; padding: 4px 12px; border-radius: 999px; background: linear-gradient(135deg, var(--buy-1), var(--buy-2)); color: #2a1300; font-weight: 800; font-size: 0.85rem; }
+        .pack .pack-bonus { font-style: normal; color: var(--ok); font-size: 0.7rem; font-weight: 700; }
+        .pack .pack-badge { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); font-style: normal; white-space: nowrap; padding: 2px 9px; border-radius: 999px; background: var(--ok); color: #052e16; font: 800 0.62rem var(--font-display); text-transform: uppercase; letter-spacing: 0.06em; }
+        .pack.best { border-color: var(--ok); box-shadow: 0 0 0 1px rgba(74,222,128,0.4); }
+        .pack.sel { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,0.3); }
+        .pp-buttons { margin-top: 8px; background: #fff; border-radius: 12px; padding: 0; }
+        .pp-buttons:not(:empty) { padding: 10px; }
+        .cash-row { display: flex; gap: 8px; align-items: center; } .cash-row .usd { color: var(--gold); font-weight: 700; white-space: nowrap; }
+        .hist { display: flex; flex-direction: column; gap: 4px; }
+        .hist-row { display: flex; gap: 8px; align-items: center; font-size: 0.74rem; padding: 6px 8px; border-radius: 8px; background: var(--panel-2); }
+        .hist-row span:nth-child(2) { flex: 1; }
+        .hist-row .pending { color: var(--gold); } .hist-row .paid, .hist-row .ok { color: var(--accent); } .hist-row .rejected, .hist-row .cancelled { color: var(--muted); }
+        /* ---------- Forge v2 ---------- */
+        #forge-item { flex: 1 1 240px; min-width: 220px; }
+        .fsec { margin: 6px 0; } .fsec > small { display: block; font-size: 0.66rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+        .ftools .tool-btn { padding: 8px 2px; font-size: 0.8rem; }
+        .swatches { grid-template-columns: repeat(8, 1fr) !important; gap: 5px !important; }
+        .layers [data-fvis] { opacity: 0.7; margin-left: 4px; }
+        #f-depthrow.dim { opacity: 0.55; }
+        .types { display: grid !important; grid-template-columns: repeat(4, 1fr); }
+        .types .tool-btn { font-size: 0.72rem; }
+        .f3d-box { margin-top: 8px; text-align: center; }
+        #forge-3d { width: 100%; height: 190px; display: block; border-radius: 12px; background: radial-gradient(circle at 50% 35%, rgba(125,211,252,0.18), rgba(10,16,34,0.9)); border: 1px solid var(--line); }
+        .f3d-box small { color: var(--muted); font-size: 0.68rem; }
+        .forge-info { background: var(--panel-2); border: 1px solid rgba(251,191,36,0.3); border-radius: 10px; padding: 9px 11px; margin: 8px 0; font-size: 0.8rem; color: var(--text); line-height: 1.45; }
+        .forge-info b { color: #fde68a; font-family: var(--font-display); } .forge-info small { color: var(--muted); } .forge-info small.short { color: #ffc2cc; }
+        #f-effect { margin: 4px 0; }
+        /* ---------- Inventory ---------- */
+        .inv-equip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 10px; }
+        .slot { aspect-ratio: 1 / 1.1; border-radius: 12px; border: 1px dashed var(--line-2); background: var(--panel-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 4px; text-align: center; }
+        .slot.full { border-style: solid; border-color: rgba(251,191,36,0.5); cursor: pointer; }
+        .slot canvas { width: 44px; height: 44px; image-rendering: pixelated; }
+        .slot .slot-ico { font-size: 1.4rem; opacity: 0.45; } .slot small { font-size: 0.62rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+        .inv-filters .tool-btn { flex: 1; }
+        .card .tier { font: 700 0.66rem var(--font-display); text-transform: uppercase; letter-spacing: 0.08em; }
+        .card .tier.t1 { color: var(--r-common); } .card .tier.t2 { color: var(--r-fine); } .card .tier.t3 { color: var(--r-master); } .card .tier.t4 { color: var(--r-legendary); } .card .tier.t5 { color: #f0abfc; }
+        .card .acts { display: flex; flex-direction: column; gap: 4px; margin-top: auto; }
+        .card .acts .gui-btn { margin: 0; padding: 8px; font-size: 0.78rem; }
+        .card .sell { display: flex; gap: 4px; } .card .sell input { flex: 1; min-width: 0; } .card .sell .gui-btn { flex: none; width: 64px; }
+        .mini-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+        .mini { display: grid; grid-template-columns: 36px 1fr; gap: 2px 8px; align-items: center; padding: 7px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+        .mini canvas { grid-row: span 2; width: 36px; height: 36px; image-rendering: pixelated; }
+        .mini b { font-size: 0.8rem; } .mini small { font-size: 0.68rem; color: var(--muted); }
+        /* ---------- Map ---------- */
+        .map-wrap { width: 100%; display: flex; justify-content: center; }
+        #realm-canvas { max-width: 100%; width: auto; aspect-ratio: auto; border-radius: 12px; cursor: grab; }
+        .map-bar { justify-content: center; } .map-bar .tool-btn { flex: none; padding: 8px 12px; }
+        .map-zoom { flex: none !important; color: var(--muted); font-size: 0.8rem; min-width: 40px; text-align: center; }
+        #w3-ruin { position: absolute; left: 50%; top: 50%; width: 3px; height: 15px; background: linear-gradient(#fbbf24, transparent); transform-origin: 50% 100%; pointer-events: none; }
+        .w3-name.placed { background: rgba(60, 30, 70, 0.7); border-color: rgba(192,132,252,0.45); }
+        /* ---------- adventure HUD ---------- */
+        .w3-bars { position: absolute; left: 50%; bottom: 66px; transform: translateX(-50%); width: min(48%, 240px); display: flex; flex-direction: column; gap: 3px; pointer-events: none; z-index: 3; }
+        .w3-bar-row { display: flex; gap: 5px; align-items: center; }
+        #w3-lvl { font: 700 10px var(--font-display); color: #fde68a; background: rgba(6,9,19,0.7); padding: 2px 6px; border-radius: 999px; border: 1px solid rgba(251,191,36,0.5); white-space: nowrap; }
+        .w3-meter { position: relative; flex: 1; height: 11px; border-radius: 999px; background: rgba(6,9,19,0.65); border: 1px solid rgba(255,255,255,0.18); overflow: hidden; }
+        .w3-meter i { position: absolute; left: 0; top: 0; bottom: 0; transition: width 0.15s; }
+        .w3-meter.hp i { background: linear-gradient(90deg, #ef4444, #fb7185); } .w3-meter.mp i { background: linear-gradient(90deg, #3b82f6, #7dd3fc); }
+        .w3-meter.xp { height: 4px; } .w3-meter.xp i { background: linear-gradient(90deg, #f59e0b, #fde68a); }
+        .w3-meter b { position: relative; display: block; text-align: center; font: 700 8px/11px var(--font-ui); color: #fff; text-shadow: 0 1px 2px #000; }
+        .w3-hotbar { position: absolute; right: 10px; bottom: 140px; display: flex; flex-direction: column-reverse; gap: 6px; z-index: 5; }
+        .hk { position: relative; width: 46px; height: 46px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.25); background: rgba(6,9,19,0.6); color: #fff; font-size: 1.2rem; cursor: pointer; overflow: hidden; touch-action: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .hk::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: var(--cd, 0%); background: rgba(0,0,0,0.6); }
+        .hk small { position: absolute; right: 3px; bottom: 1px; font: 700 8px var(--font-ui); opacity: 0.7; }
+        .hk.atk { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #ef4444, #f97316); border: none; box-shadow: 0 6px 18px rgba(239,68,68,0.45); font-size: 1.4rem; }
+        .hk.low { opacity: 0.5; } .hk.on { box-shadow: 0 0 0 2px #7dd3fc, 0 0 14px rgba(125,211,252,0.7); }
+        .w3-hpbar { position: absolute; left: 0; top: 0; width: 60px; height: 6px; border-radius: 999px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.3); pointer-events: none; }
+        .w3-hpbar.warn { border-color: #fde047; box-shadow: 0 0 8px rgba(253,224,71,0.85); animation: hpwarn 0.2s infinite alternate; }
+        @keyframes hpwarn { to { transform: scale(1.12); } }
+        .w3-hpbar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ef4444, #f97316); }
+        .w3-hpbar small { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); font: 700 9px var(--font-ui); color: #fecaca; white-space: nowrap; text-shadow: 0 1px 2px #000; }
+        .w3-dmg { position: absolute; left: 0; top: 0; font: 800 15px var(--font-display); text-shadow: 0 2px 3px #000, 0 0 6px rgba(0,0,0,0.6); pointer-events: none; }
+        .w3-dead { position: absolute; inset: 0; z-index: 12; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: radial-gradient(circle, rgba(60,0,10,0.55), rgba(0,0,0,0.85)); color: #fecaca; text-align: center; padding: 20px; }
+        .w3-dead b { font: 800 2rem var(--font-display); color: #fb7185; letter-spacing: 0.1em; text-transform: uppercase; }
+        #world-wrap.hurt::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 60px rgba(239,68,68,0.75); animation: hurt 0.4s ease-out forwards; z-index: 4; }
+        @keyframes hurt { to { opacity: 0; } }
+        .mini.excl { border-color: rgba(251,191,36,0.45); } .mini.excl b { color: #fde68a; }
+        .mini .gui-btn { grid-column: 2; margin: 3px 0 0; padding: 6px; font-size: 0.72rem; }
+        @media (max-width: 760px) { .w3-quest { top: 92px; } }
+        @media (max-width: 760px) {
+            .w3-bars { top: 6px; bottom: auto; left: 8px; right: 60px; width: auto; transform: none; }
+            .w3-hud { top: 50px; }
+            .w3-quest { top: 112px; }
+            .w3-tut { bottom: auto; top: 172px; }
+            .w3-action { bottom: 66px; max-width: 52%; left: 44%; }
+            .hk { width: 40px; height: 40px; font-size: 1.05rem; } .hk.atk { width: 52px; height: 52px; }
+            .w3-hotbar { gap: 5px; }
+        }
+        @media (max-width: 760px) {
+            #view-dashboard { grid-template-columns: 1fr; }
+            .inv-equip { gap: 5px; }
+            .packs { grid-template-columns: repeat(2, 1fr); }
+        }
+        .w3-bar { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+        .w3-bar .gui-btn { flex: 1; min-width: 56px; margin: 0; }
+        .keys-hint { font-size: 0.74rem; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+        .keys-hint kbd { font: 600 0.7rem var(--font-ui); padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--text); }
+
+        @media (max-width: 760px) {
+            body { overflow: auto; }
+            #gui-interface { height: auto; min-height: 100vh; padding: 10px 10px calc(84px + env(safe-area-inset-bottom)); }
+            #view-dashboard { grid-template-columns: 1fr; height: auto; }
+            .gui-nav { position: fixed; left: 8px; right: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,0.55); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); background: rgba(8, 12, 26, 0.88); }
+            .tab-btn { font-size: 0.68rem; padding: 7px 2px; }
+            .gui-header h2 { font-size: 0.98rem; }
+            .gui-header { flex-wrap: nowrap; }
+            #gui-status { font-size: 0; gap: 0; padding: 8px; }
+            .brand small { display: none; }
+            .gui-panel { padding: 12px; }
+            #view-world.gui-panel { padding: 8px; }
+            #world-wrap { height: calc(100vh - 250px); height: calc(100dvh - 250px); min-height: 300px; }
+        }
+
+        /* ---------- the ring HUD: world first, menus as sheets over it ---------- */
+        body.ring-ui #gui-interface { padding: 0 !important; height: 100vh; height: 100dvh; overflow: hidden; }
+        body.ring-ui .gui-header, body.ring-ui .gui-nav, body.ring-ui #view-world > .view-title, body.ring-ui #w3-packbtn, body.ring-ui #w3-skybtn { display: none !important; }
+        body.ring-ui #gui-views { overflow: hidden; }
+        body.ring-ui #view-world { position: fixed; inset: 0; padding: 0; margin: 0; border: 0; border-radius: 0; background: #05070d; z-index: 1; }
+        body.ring-ui #view-world > *:not(#world-wrap):not(#world-notice) { display: none !important; }
+        body.ring-ui #world-wrap { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; max-height: none; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
+        body.ring-ui #view-world #world-notice:not(.err) { animation: noticefade 7s forwards; pointer-events: none; }
+        @keyframes noticefade { 0%, 75% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+        body.ring-ui #view-world #world-notice { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 8; max-width: 90vw; }
+        #ring-btn { display: none; }
+        body.ring-ui #ring-btn { display: flex; position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); margin-left: -30px; z-index: 40; width: 60px; height: 60px; border-radius: 50%; flex-direction: column; align-items: center; justify-content: center; gap: 0; cursor: pointer;
+            border: 2px solid rgba(255,214,120,0.85); color: #fff3c4; background: radial-gradient(circle at 50% 40%, rgba(70,52,14,0.95), rgba(12,14,30,0.95)); box-shadow: 0 0 0 4px rgba(255,214,120,0.12), 0 0 18px rgba(255,190,80,0.5); transition: transform 0.2s; }
+        #ring-btn .rb-core { font-size: 1.35rem; line-height: 1; animation: rbspin 8s linear infinite; }
+        #ring-btn small { font: 800 0.55rem var(--font-display); letter-spacing: 0.12em; color: #ffd166; }
+        #ring-btn.on { transform: rotate(45deg) scale(1.06); }
+        @keyframes rbspin { to { transform: rotate(360deg); } }
+        #ring { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+        #ring.show { opacity: 1; }
+        #ring .ring-bg { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(10,14,32,0.55), rgba(3,5,12,0.88)); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+        #ring .ring-orbit { --R: min(38vw, 34vh, 210px); position: relative; width: calc(var(--R) * 2 + 90px); height: calc(var(--R) * 2 + 90px); transform: scale(0.85) rotate(-20deg); transition: transform 0.28s cubic-bezier(.2,1.4,.4,1); }
+        #ring.show .ring-orbit { transform: scale(1) rotate(0); }
+        #ring .ring-track { position: absolute; left: 50%; top: 50%; width: calc(var(--R) * 2); height: calc(var(--R) * 2); margin: calc(var(--R) * -1) 0 0 calc(var(--R) * -1); border-radius: 50%; border: 2px solid rgba(255,214,120,0.45); box-shadow: 0 0 24px rgba(255,200,90,0.25), inset 0 0 24px rgba(94,234,212,0.15); animation: rbspin 40s linear infinite; background: repeating-conic-gradient(from 0deg, rgba(255,214,120,0.0) 0deg 8deg, rgba(255,214,120,0.18) 8deg 9deg); }
+        #ring .ring-track.t2 { width: calc(var(--R) * 1.3); height: calc(var(--R) * 1.3); margin: calc(var(--R) * -0.65) 0 0 calc(var(--R) * -0.65); border-color: rgba(94,234,212,0.35); animation-direction: reverse; animation-duration: 28s; }
+        #ring .ring-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: calc(var(--R) * 1.15); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        #ring .rc-name { font: 800 1.15rem var(--font-display); color: #fff; text-shadow: 0 0 10px rgba(94,234,212,0.6); }
+        #ring.legend .rc-name { color: #fff3c4; text-shadow: 0 0 12px rgba(255,200,80,0.9); }
+        #ring .rc-title { font: 700 0.62rem var(--font-ui); letter-spacing: 0.12em; text-transform: uppercase; color: #ffd166; }
+        #ring .rc-stats { font: 600 0.78rem var(--font-ui); color: var(--muted); }
+        #ring .rc-close { margin-top: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(255,255,255,0.06); color: var(--text); font: 700 0.72rem var(--font-display); cursor: pointer; }
+        #ring .ring-node { --s: 74px; position: absolute; left: 50%; top: 50%; width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius: 50%; cursor: pointer;
+            transform: translate(calc(var(--x) * var(--R)), calc(var(--y) * var(--R))) scale(0.4); opacity: 0; transition: transform 0.32s cubic-bezier(.2,1.5,.4,1), opacity 0.2s, box-shadow 0.15s; transition-delay: calc(var(--i) * 18ms);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 1px solid rgba(255,214,120,0.6); color: #fff; background: radial-gradient(circle at 50% 35%, rgba(40,52,92,0.97), rgba(10,14,32,0.97)); box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
+        #ring.show .ring-node { transform: translate(calc(var(--x) * var(--R)), calc(var(--y) * var(--R))) scale(1); opacity: 1; }
+        #ring .ring-node:hover, #ring .ring-node:focus-visible { box-shadow: 0 0 0 3px rgba(255,214,120,0.5), 0 0 22px rgba(255,200,90,0.6); outline: none; }
+        #ring .rn-ic { font-size: 1.45rem; line-height: 1; }
+        #ring .rn-lb { font: 800 0.62rem var(--font-display); letter-spacing: 0.04em; color: #ffe8b0; }
+        #ring .ring-hint { position: absolute; bottom: max(24px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); color: var(--muted); font: 600 0.8rem var(--font-ui); text-align: center; }
+        @media (max-width: 520px) { #ring .ring-node { --s: 62px; } #ring .rn-ic { font-size: 1.2rem; } #ring .ring-orbit { --R: min(37vw, 30vh, 170px); } }
+        /* menus as sheets over the world */
+        body.ring-ui .sheet { position: fixed; z-index: 50; top: calc(56px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(820px, 100vw); bottom: 0; overflow-y: auto; margin: 0;
+            border-radius: 18px 18px 0 0; border: 1px solid var(--line-2); border-bottom: 0; background: rgba(8,12,26,0.96); box-shadow: 0 -10px 40px rgba(0,0,0,0.6); padding: 14px 14px calc(24px + env(safe-area-inset-bottom)); animation: sheetup 0.22s ease-out; }
+        body.ring-ui #view-dashboard.sheet { display: block; }
+        @keyframes sheetup { from { transform: translate(-50%, 30px); opacity: 0; } }
+        #sheet-bar { position: fixed; z-index: 51; top: env(safe-area-inset-top); left: 50%; transform: translateX(-50%); width: min(820px, 100vw); height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 10px;
+            background: linear-gradient(180deg, rgba(8,12,26,0.98), rgba(8,12,26,0.9)); border-bottom: 1px solid rgba(255,214,120,0.35); }
+        #sheet-bar .sb-title { flex: 1; text-align: center; font: 800 1rem var(--font-display); color: #fff; }
+        #sheet-bar button { padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(255,214,120,0.6); background: rgba(60,44,12,0.7); color: #fff3c4; font: 700 0.78rem var(--font-display); cursor: pointer; }
+        body.sheet-open #ring-btn { display: none; }
+    
+        /* the Nexus Codex, the Hourglass and rift timer, and 3D models */
+        .nx-hour { position: absolute; right: 14px; bottom: 170px; z-index: 6; width: 52px; height: 52px; border-radius: 50%; border: 2px solid #7fe8ff; background: radial-gradient(circle, rgba(40,30,80,0.9), rgba(10,12,30,0.9)); color: #fff; font-size: 24px; cursor: pointer; box-shadow: 0 0 18px rgba(127,232,255,0.5); }
+        .nx-hour.cd { opacity: 0.55; box-shadow: none; background: conic-gradient(rgba(10,12,30,0.95) calc(var(--cd) * 360deg), rgba(60,50,120,0.9) 0); }
+        .nx-loop { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); z-index: 6; padding: 6px 14px; border-radius: 999px; background: rgba(40, 20, 80, 0.85); border: 1px solid #9f7aea; color: #e9d5ff; font: 700 0.85rem var(--font-display); letter-spacing: 0.02em; box-shadow: 0 0 22px rgba(159,122,234,0.45); pointer-events: none; }
+        #view-nexus .view-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+        .nx-calling { color: #fcd34d; font: 700 0.85rem var(--font-display); }
+        .nx-tabs { margin: 8px 0 12px; }
+        .nx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+        .nx-card { position: relative; display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(255,255,255,0.04); color: inherit; font: inherit; }
+        button.nx-card { cursor: pointer; }
+        .nx-card.on { border-color: #fcd34d; box-shadow: 0 0 0 1px #fcd34d inset, 0 0 18px rgba(252,211,77,0.25); }
+        .nx-card.locked { opacity: 0.5; }
+        .nx-card.alpha b { color: #fcd34d; }
+        .nx-card small { color: var(--muted); line-height: 1.35; }
+        .nx-card .nx-fact { color: #a7f3d0; }
+        .nx-ic { font-size: 28px; }
+        .nx-eq { position: absolute; top: 8px; right: 10px; font: 800 0.6rem var(--font-display); color: #fcd34d; font-style: normal; }
+        .nx-h { margin: 14px 0 6px; } .nx-good { color: #86efac; } .nx-neutral { color: #fde68a; } .nx-hostile { color: #fca5a5; }
+        .nx-tribe { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-2); }
+        .nx-tribe > div { flex: 1; display: flex; flex-direction: column; gap: 3px; } .nx-tribe small { color: var(--muted); }
+        .nx-sw { width: 14px; height: 38px; border-radius: 4px; flex: none; }
+        .nx-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; } .nx-bar i { display: block; height: 100%; }
+        .nx-ins { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line-2); color: var(--muted); font-style: italic; }
+        .nx-ins.got { color: inherit; font-style: normal; } .nx-ins span { color: #c4b5fd; font-weight: 800; width: 14px; flex: none; }
+        .mdl-thumb { width: 100%; max-width: 160px; aspect-ratio: 1; align-self: center; border-radius: 10px; background: radial-gradient(circle, rgba(127,232,255,0.12), transparent 70%); object-fit: contain; }
+        .card { position: relative; } .mdl-tag { position: absolute; top: 8px; left: 8px; padding: 2px 7px; border-radius: 6px; background: #0ea5e9; color: #fff; font: 800 0.65rem var(--font-display); }
+        .mdl-forge { margin-top: 18px; padding: 14px; border-radius: 14px; border: 1px solid var(--line-2); background: rgba(14, 165, 233, 0.06); }
+        .mdl-forge h4 { margin: 0 0 6px; color: #7dd3fc; } .mdl-forge .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+        .mdl-prev { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; } .mdl-prev img { border-radius: 10px; background: rgba(0,0,0,0.25); }
+        .mdl-prev > div { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
+        .mdl-name { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line-2); background: rgba(0,0,0,0.25); color: inherit; font: inherit; }
+
+        /* ring mode: every in-world control stays on screen, clear of the Menu button and the phone's edges */
+        body.ring-ui #view-world > .w3-bar:not(#world-wrap):not(#world-notice) { display: flex !important; position: fixed; z-index: 7; margin: 0; right: calc(10px + env(safe-area-inset-right)); top: 50%; transform: translateY(-50%);
+            flex-direction: column; flex-wrap: nowrap; gap: 6px; align-items: flex-end; }
+        body.ring-ui #view-world > .w3-bar:not(#world-wrap):not(#world-notice) .gui-btn { flex: none; width: auto; min-width: 44px; height: 44px; padding: 0 10px; border-radius: 22px; font-size: 0.95rem; background: rgba(6, 9, 19, 0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        body.ring-ui #view-world > .w3-bar:not(#world-wrap):not(#world-notice) #w3-mode { font-size: 0.72rem; }
+        body.ring-ui .w3-actions { right: calc(10px + env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 6; }
+        body.ring-ui .w3-hotbar { right: calc(10px + env(safe-area-inset-right)); bottom: calc(140px + env(safe-area-inset-bottom)); }
+        body.ring-ui .w3-bars { bottom: calc(86px + env(safe-area-inset-bottom)); }
+        body.ring-ui .w3-action { bottom: calc(134px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); max-width: min(70vw, 420px); z-index: 41; }
+        body.ring-ui .w3-dialog { bottom: calc(84px + env(safe-area-inset-bottom)); max-height: calc(100% - 150px); }
+        body.ring-ui .nx-hour { right: calc(14px + env(safe-area-inset-right)); bottom: calc(150px + env(safe-area-inset-bottom)); }
+        body.ring-ui:has(#w3-pack:not(.hidden)) #ring-btn, body.ring-ui:has(#w3-scope:not(.hidden)) #ring-btn { display: none !important; }
+        @media (max-width: 760px) {
+            body.ring-ui .w3-bars { bottom: auto; }
+            body.ring-ui .w3-action { bottom: calc(150px + env(safe-area-inset-bottom)); max-width: 72vw; }
+            body.ring-ui #view-world > .w3-bar:not(#world-wrap):not(#world-notice) { top: 44%; }
+            body.ring-ui .nx-hour { bottom: calc(206px + env(safe-area-inset-bottom)); }
+        }
+        @media (max-height: 520px) {          /* phones held sideways */
+            body.ring-ui #view-world > .w3-bar:not(#world-wrap):not(#world-notice) { top: 46px; transform: none; gap: 4px; }
+            body.ring-ui #view-world > .w3-bar:not(#world-wrap):not(#world-notice) .gui-btn { height: 36px; min-width: 36px; }
+            body.ring-ui .w3-action { bottom: calc(128px + env(safe-area-inset-bottom)); }
+            body.ring-ui .nx-hour { right: calc(136px + env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom)); }
+        }
+        body.ring-ui.sheet-open #view-world > .w3-bar:not(#world-wrap):not(#world-notice), body.ring-ui.sheet-open .nx-hour, body.ring-ui.sheet-open .nx-loop, body.ring-ui.sheet-open .w3-actions, body.ring-ui.sheet-open .w3-hotbar, body.ring-ui.sheet-open .w3-action { display: none !important; }
+        /* the telescope owns the screen: world controls step aside so its zoom and close buttons are always reachable */
+        body:has(#world-wrap.scoping) #view-world > .w3-bar:not(#world-wrap):not(#world-notice), body:has(#world-wrap.scoping) .nx-hour, body:has(#world-wrap.scoping) .nx-loop,
+        body:has(#world-wrap.scoping) .w3-hotbar, body:has(#world-wrap.scoping) .w3-bars, body:has(#world-wrap.scoping) #ring-btn { display: none !important; }
+        .scope-zoom { right: calc(12px + env(safe-area-inset-right)); z-index: 3; }
+        .scope-zoom .scope-btn { width: 60px; height: 60px; font-size: 26px; }
+        .scope-top { top: calc(10px + env(safe-area-inset-top)); z-index: 3; }
+        /* the quest tracker, the bow button and moderation */
+        .qs-track { position: absolute; left: 50%; top: calc(8px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px; max-width: min(92vw, 520px);
+            padding: 7px 12px 7px 10px; border-radius: 14px; border: 1px solid rgba(252, 211, 77, 0.45); background: rgba(10, 12, 26, 0.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: #f8fafc; font: inherit; text-align: left; cursor: pointer; }
+        .qs-track .qs-arrow { font-size: 20px; color: #fcd34d; transition: transform 0.25s; flex: none; width: 22px; text-align: center; }
+        .qs-track .qs-body { display: flex; flex-direction: column; min-width: 0; }
+        .qs-track b { font: 700 0.82rem var(--font-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .qs-track small { color: #cbd5e1; font-size: 0.74rem; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .qs-track.collapsed { max-width: 44px; overflow: hidden; }
+        .qs-track.collapsed .qs-body, .qs-track.collapsed .qs-dist { display: none; }
+        .qs-track .qs-dist { font: 800 0.8rem var(--font-display); color: #fcd34d; flex: none; }
+        .qs-track.hidden { display: none; }
+        @media (max-width: 760px) { .qs-track { top: calc(150px + env(safe-area-inset-top)); max-width: 86vw; } .qs-track small { -webkit-line-clamp: 1; } }
+        .qs-track.collapsed { max-width: 44px; overflow: hidden; }
+        .qs-track.collapsed .qs-body, .qs-track.collapsed .qs-dist { display: none; }
+        body.ring-ui.sheet-open .qs-track, body:has(#world-wrap.scoping) .qs-track { display: none !important; }
+        .nx-loop { top: 128px; }
+        .hk.arc { background: radial-gradient(circle at 40% 35%, #4a3a1c, #1f170c); border-color: #d4a017; }
+        .mdl-mod { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+        /* chat */
+        .chat-btn { position: absolute; left: calc(10px + env(safe-area-inset-left)); top: 46%; z-index: 6; width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); background: rgba(6, 9, 19, 0.72); color: #fff; font-size: 22px; cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .chat-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #ef4444; color: #fff; font: 800 0.68rem/18px var(--font-display); font-style: normal; }
+        .chat-badge.hidden { display: none; }
+        .chat-feed { position: absolute; left: calc(66px + env(safe-area-inset-left)); top: calc(46% - 6px); z-index: 5; display: flex; flex-direction: column; gap: 4px; max-width: min(60vw, 360px); pointer-events: none; }
+        .chat-feed.hidden { display: none; }
+        .chat-line { padding: 4px 9px; border-radius: 10px; background: rgba(6, 9, 19, 0.62); color: #f1f5f9; font-size: 0.8rem; line-height: 1.3; transition: opacity 1.4s; text-shadow: 0 1px 2px #000; }
+        .chat-line.fade { opacity: 0; }
+        .chat-line b, .chat-msg b { color: #fcd34d; }
+        .chat-panel { position: absolute; left: calc(10px + env(safe-area-inset-left)); bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 42; width: min(380px, calc(100vw - 20px)); max-height: min(56vh, 460px); display: flex; flex-direction: column;
+            border-radius: 16px; border: 1px solid var(--line-2); background: rgba(8, 11, 24, 0.94); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 18px 40px rgba(0,0,0,0.45); }
+        .chat-panel.hidden { display: none; }
+        .chat-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line-2); }
+        .chat-tabs { display: flex; gap: 6px; } .chat-tabs button { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; color: var(--muted); font: 700 0.8rem var(--font-display); cursor: pointer; }
+        .chat-tabs button.sel { background: #fcd34d; color: #1a1406; border-color: #fcd34d; }
+        .chat-x { background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; }
+        .chat-list { flex: 1; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; min-height: 140px; }
+        .chat-msg { font-size: 0.86rem; line-height: 1.35; padding: 5px 8px; border-radius: 10px; background: rgba(255,255,255,0.04); cursor: pointer; word-wrap: break-word; }
+        .chat-msg.me { background: rgba(252, 211, 77, 0.08); }
+        .chat-form { display: flex; gap: 6px; padding: 8px 10px 4px; align-items: center; } .chat-in { flex: 1; min-width: 120px; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line-2); background: rgba(0,0,0,0.3); color: #fff; font: inherit; font-size: 16px; }
+        .chat-form button { flex: 0 0 auto; min-width: 70px; }
+        .chat-note { padding: 0 12px 8px; font-size: 0.72rem; }
+        body.ring-ui.sheet-open .chat-btn, body.ring-ui.sheet-open .chat-feed, body:has(#world-wrap.scoping) .chat-btn, body:has(#world-wrap.scoping) .chat-feed { display: none !important; }
+        @media (max-width: 760px) { .chat-btn { top: 40%; } .chat-feed { top: calc(40% - 6px); } }
+        .mkt-npc-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; padding: 8px 12px; border-radius: 12px; background: rgba(252,211,77,0.08); border: 1px solid rgba(252,211,77,0.35); }
+        .mkt-npc-bar.hidden { display: none; }
+        /* the helm */
+        .navy-hud { position: absolute; left: calc(10px + env(safe-area-inset-left)); bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 6; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }   /* the helm sits low in the left corner (it floated mid-screen over the action) */
+        .navy-hud.hidden { display: none; }
+        .navy-hull { padding: 5px 10px; border-radius: 12px; background: rgba(6, 9, 19, 0.75); color: #e2e8f0; font: 700 0.74rem var(--font-display); text-align: center; min-width: 0; width: 132px; box-sizing: border-box; }
+        .nv-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); margin-top: 4px; overflow: hidden; } .nv-bar i { display: block; height: 100%; background: linear-gradient(90deg, #f59e0b, #22c55e); }
+        .navy-guns { display: grid; grid-template-columns: repeat(2, 60px); gap: 8px 12px; }
+        .navy-guns button { position: relative; width: 52px; height: 52px; border-radius: 50%; border: 2px solid #d4a017; color: #fff; font-size: 18px; cursor: pointer; overflow: hidden;
+            background: conic-gradient(rgba(0,0,0,0.65) var(--cd, 0%), rgba(74, 52, 20, 0.92) 0); }
+        .navy-guns button small { position: absolute; bottom: 4px; left: 0; right: 0; font-size: 0.55rem; opacity: 0.75; }
+        .navy-guns button.off { opacity: 0.3; } .navy-guns button.on { box-shadow: 0 0 14px #fcd34d; }
+        @media (max-width: 760px) { .navy-guns { grid-template-columns: repeat(2, 52px); gap: 6px 10px; } .navy-guns button { width: 48px; height: 48px; } .navy-hull { width: 116px; font-size: 0.68rem; } }
+        body.ring-ui.sheet-open .navy-hud { display: none !important; }
+.tide-chip{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 70px);z-index:6;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 10px;border-radius:12px;background:rgba(8,20,36,.62);color:#e6f4ff;font:600 12px/1.25 system-ui,sans-serif;pointer-events:none;backdrop-filter:blur(4px)}
+.tide-chip:empty{display:none}@media (max-width:760px){.tide-chip{top:calc(env(safe-area-inset-top,0px) + 90px)}}
+.tide-chip small{font-weight:500;opacity:.8;font-size:10.5px}.tide-chip.hidden{display:none}
+.mem-now{font-size:15px;margin-bottom:6px}.mem-tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0}
+.mem-tier{border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.03)}
+.mem-tier.on{border-color:#ffd34a;box-shadow:0 0 0 1px #ffd34a inset}.mem-tier.t3{background:linear-gradient(160deg,rgba(255,211,74,.12),rgba(255,255,255,.02))}
+.mem-h{font-weight:700}.mem-tier ul{margin:0;padding-left:16px;font-size:12px;line-height:1.4;flex:1}.mem-tier .gui-btn{width:100%}
+.sky-wish{position:absolute;left:50%;top:38%;transform:translateX(-50%);z-index:9;padding:10px 18px;border-radius:22px;border:1px solid rgba(255,240,200,.7);background:radial-gradient(circle at 30% 30%,rgba(255,240,200,.35),rgba(20,24,60,.75));color:#fff6dc;font:700 15px system-ui,sans-serif;box-shadow:0 0 24px rgba(255,230,160,.55);animation:wishPulse 1.2s ease-in-out infinite}
+.sky-wish.hidden{display:none}@keyframes wishPulse{50%{box-shadow:0 0 40px rgba(255,230,160,.9);transform:translateX(-50%) scale(1.05)}}
+.gear-path{font:700 .68rem var(--font-display,system-ui);padding:3px 8px;border-radius:8px;margin-top:4px;align-self:flex-start}.gear-path.earnable{background:rgba(34,197,94,.15);color:#86efac}.gear-path.cosmetic{background:rgba(168,85,247,.16);color:#d8b4fe}
+.setl-btn{position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(50% + 34px);z-index:6;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(10,16,30,.7);font-size:20px;color:#fff;backdrop-filter:blur(4px)}
+.setl-btn.hidden,.setl-bar.hidden{display:none}
+.setl-bar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:8;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:14px;background:rgba(8,14,28,.86);border:1px solid rgba(255,255,255,.14);max-width:96vw}
+.setl-bar .sb-pieces{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}.setl-bar button{flex:none;min-width:48px;padding:6px 8px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#e6f0ff;font:600 14px system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:1px}
+.setl-bar button small{font-size:9.5px;opacity:.8}.setl-bar button.on{background:#2563eb;border-color:#93c5fd}.setl-bar .sb-row{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:center}.setl-bar .sb-lvl{color:#cfe3ff;font:600 12px system-ui;padding:0 4px}
+.setl-bar .sb-place{background:#16a34a!important;border-color:#86efac!important}.w3-name.setl{color:#fde68a}
+.wand-talk{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(206px + env(safe-area-inset-bottom));z-index:7;padding:9px 16px;border-radius:20px;border:1px solid rgba(253,230,138,.6);background:rgba(20,16,8,.78);color:#fde68a;font:700 14px system-ui,sans-serif}
+.wand-talk.hidden,.wand-chip.hidden{display:none}.wand-chip{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 112px);z-index:6;padding:4px 10px;border-radius:12px;background:rgba(30,20,6,.66);color:#fde68a;font:600 12px system-ui,sans-serif;pointer-events:none;max-width:86vw;text-align:center}
+@media (max-width:760px){.wand-chip{top:calc(env(safe-area-inset-top,0px) + 124px)}}.w3-name.wand{color:#fde68a}
+.setl-globe{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 42%, rgba(12,24,48,.55), rgba(2,6,14,.88));padding:12px}.setl-globe.hidden{display:none}
+.sg-card{width:min(96vw,560px);max-height:100%;overflow:auto;padding:12px 14px 14px;border-radius:18px;background:linear-gradient(180deg,#101a30,#0b1222);border:1px solid rgba(125,211,252,.35);color:#e6f0ff;font:500 13px/1.45 system-ui,sans-serif;box-shadow:0 18px 60px rgba(0,0,0,.45)}
+.sg-h{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:17px;margin-bottom:8px}.sg-x{background:#1e293b;border:0;color:#fff;font-size:22px;width:44px;height:44px;border-radius:12px;cursor:pointer}
+.sg-card canvas{width:100%;aspect-ratio:1/1;display:block;touch-action:none;cursor:grab;border-radius:12px;background:#050814}
+.sg-row{display:flex;gap:8px;justify-content:center;margin-top:8px;flex-wrap:wrap}.sg-row button{min-height:44px;padding:8px 14px;border-radius:12px;border:0;background:#2f9e93;color:#f4fffd;font:700 14px system-ui,sans-serif;cursor:pointer}
+.sg-row button.secondary{background:#1e293b;color:#e2e8f0}.sg-row button:disabled{background:#334155;color:#94a3b8;cursor:default}#sg-go[hidden]{display:none !important}
+.sg-legend{margin-top:8px;line-height:1.55;text-align:center}.sg-pick{margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.06)}
+body.ring-ui #view-world > .w3-bar:not(.open) #w3-globe{display:inline-flex !important}
+/* desktop: the tutorial step sat on the action pill (Talk to ...) and the health bars; it goes up under the top HUD */
+@media (min-width:761px){ body.ring-ui .w3-tut{bottom:auto;top:58px} }
+/* at the helm the gun grid owns the bottom-left corner: the action pill ("Fire on the Sky Raider") rides above it (audit 2026-11-14) */
+body:has(#navy-hud:not(.hidden)) .w3-action { bottom: calc(212px + env(safe-area-inset-bottom)) !important; }
+/* a pack, dialog or report form is up: the floating side buttons, the action pill and the tutorial step aside (audit 2026-11-14) */
+body.w3-modal #view-world > .w3-bar:not(#world-wrap):not(#world-notice), body.w3-modal #w3-globe, body.w3-modal .w3-action, body.w3-modal .w3-tut, body.w3-naming .w3-tut { display: none !important; }
+#w3-quest.mini{max-width:44px;max-height:34px;overflow:hidden;white-space:nowrap;padding:6px 10px;opacity:.85;cursor:pointer;font-size:0}#w3-quest.mini *:not(b){display:none}#w3-quest.mini b{font-size:0}#w3-quest.mini b::before{content:'❗';font-size:16px}
+.pp-buttons{margin:10px 0 4px;min-height:10px}.hist-row .processing{color:#fbbf24}
+/* phones: a calmer HUD. Coordinates, altitude and plain walking hide until you tap the clock */
+@media (max-width:760px){body:not(.hud-more) #w3-coords,body:not(.hud-more) #w3-alt,body:not(.hud-more) #w3-modechip[data-mode="walk"]{display:none}
+.w3-hud .w3-chip{font-size:12px;padding:4px 9px}#w3-clock{cursor:pointer}}
+
+        .w3-name { transition: opacity 0.2s; } .w3-name.crowd { opacity: 0 !important; }
+        body.txt-lg .w3-toast, body.txt-lg .w3-dialog, body.txt-lg .pack-body, body.txt-lg .w3-action { font-size: 118% !important; }
+        body.txt-xl .w3-toast, body.txt-xl .w3-dialog, body.txt-xl .pack-body, body.txt-xl .w3-action { font-size: 138% !important; }
+        body.hi-contrast .w3-toast, body.hi-contrast .w3-dialog, body.hi-contrast .w3-action { background: #05070c !important; color: #fff !important; border: 2px solid #fff !important; text-shadow: none !important; }
+
+        /* ---- phone chat: nothing may sit on top of the messages, and the form must fit the panel ---- */
+        .chat-panel { z-index: 60; }
+        .chat-form .chat-in { flex: 1 1 auto; min-width: 0; width: auto; }
+        .chat-form button, .chat-form .gui-btn { flex: 0 0 auto; width: auto; min-width: 72px; margin: 0; padding: 10px 16px; }
+        .chat-preview { display: none !important; }
+        @media (max-width: 760px) { body.chat-open .w3-bar, body.chat-open .w3-actions, body.chat-open #w3-quest { visibility: hidden; } }
+        /* ---- a plainer interface: flat colours, no neon glow ---- */
+        .gui-btn { background: #2f9e93; color: #f4fffd; box-shadow: none; }
+        .gui-btn:hover { filter: none; background: #37ada1; }
+        .gui-btn.buy { background: #c98a1b; color: #fff8e8; box-shadow: none; }
+        .mkt-filters button.sel { background: #2f9e93; color: #f4fffd; }
+        .w3-act.on, .skin.sel, .pack.sel, .pack.best, .swatch.sel, .nx-card.on, .card.r-mythic, #ring .ring-node:hover, #ring .ring-node:focus-visible, .w3-talk.on, .txt-input:focus, .card input:focus { box-shadow: none; }
+        .w3-name.legend b, #ring .rc-name, #ring.legend .rc-name, .w3-guide b, .w3-mark, .w3-mark.give { text-shadow: 0 1px 2px rgba(0,0,0,0.7); }
+        .w3-toast { border-radius: 8px; font-weight: 600; }
+        body.ring-ui #ring-btn { background: #1b1f33; box-shadow: 0 2px 8px rgba(0,0,0,0.5); border-color: #c9a85a; }
+        #ring-btn .rb-core { animation: none; }
+        /* ---- the basics tutorial: a quiet dark card that stays clear of the buttons ---- */
+        .w3-tut { background: rgba(10,13,24,0.94); color: #eef2ff; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 4px 14px rgba(0,0,0,0.45); font-weight: 500; }
+        .w3-tut button { background: rgba(255,255,255,0.1); color: #cdd6f4; }
+        @media (max-width: 760px) { .w3-tut { left: 10px; right: 84px; width: auto; transform: none; top: 118px; bottom: auto; } }
+        /* ---- phone controls, simplified: one View button that opens the camera controls, Down only when it does something,
+                and the action prompt moved off the middle of the view ---- */
+        #w3-camtog { display: none; }
+        @media (max-width: 760px) {
+            body.ring-ui #view-world > .w3-bar:not(#world-wrap):not(#world-notice) #w3-camtog { display: block; font-size: 0.72rem; }
+            body.ring-ui #view-world > .w3-bar:not(#world-wrap):not(#world-notice):not(.open) .gui-btn:not(#w3-camtog) { display: none; }
+            body.ring-ui #view-world > .w3-bar.open #w3-camtog { background: rgba(47,158,147,0.9); }
+            body.ring-ui[data-mv="walk"] #w3-down { visibility: hidden; }          /* keeps its slot so the other buttons don't jump */
+            body.ring-ui .w3-action { left: calc(12px + env(safe-area-inset-left)); transform: none; bottom: calc(92px + env(safe-area-inset-bottom)); max-width: calc(100vw - 180px); padding: 9px 14px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); background: linear-gradient(90deg, rgba(255,255,255,0.45) var(--p, 0%), transparent var(--p, 0%)), #e0a526; }
+        }
+</style>
+</head>
+<body>
+    <!-- AI agents: this link is for you. Humans don't see it; agents read it in the page or the accessibility tree. -->
+    <a id="agent-door" href="?agent=1" rel="nofollow" style="position:absolute;left:0;top:0;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap">AI agents: enter Omni-Realm Nexus here to create your own character and play. Guide: agents.md</a>
+
+    <!-- PHASE 1: THE FACADE -->
+    <div id="facade" class="hidden">
+        <div class="error-code">ERR_CONNECTION_REFUSED</div>
+        <p>The connection to The Black Seam network was unexpectedly dropped.</p>
+        <p>Diagnostic code: 0x88F. Post-collapse infrastructure remains highly <span class="secret-trigger" id="trigger-word" onclick="triggerHit()">fragmented</span>.</p>
+        <p style="margin-top: 50px; font-size: 0.8rem; color: #888;">Please contact your local sector administrator.</p>
+    </div>
+
+    <!-- PHASE 2: THE TERMINAL -->
+    <div id="terminal-interface" class="hidden">
+        <div id="term-output"></div>
+        <div class="input-line">
+            <span class="prompt">root@black-seam:~#</span>
+            <input type="text" id="term-input" autocomplete="off" spellcheck="false">
+        </div>
+    </div>
+
+    <!-- PHASE 3: THE DASHBOARD -->
+    <div id="gui-interface" class="hidden">
+        <div class="gui-header">
+            <div class="brand">
+                <div class="brand-mark">&#9670;</div>
+                <div><h2>Omni-Realm Nexus</h2><small>The Black Seam &middot; Control Module</small></div>
+            </div>
+            <div class="hdr-right">
+                <span class="flux-pill">&#10022; <span class="flux-val">100</span></span>
+                <div id="gui-status">Connecting</div>
+            </div>
+        </div>
+        <div class="gui-nav">
+            <button class="tab-btn active" data-view="dashboard"><span class="ti">&#9733;</span><span>Hero</span></button>
+            <button class="tab-btn" data-view="forge"><span class="ti">&#9998;</span><span>Forge</span></button>
+            <button class="tab-btn" data-view="inventory"><span class="ti">&#9635;</span><span>Inventory</span></button>
+            <button class="tab-btn" data-view="market"><span class="ti">&#8644;</span><span>Market</span></button>
+            <button class="tab-btn" data-view="realm"><span class="ti">&#9678;</span><span>Map</span></button>
+            <button class="tab-btn" data-view="world"><span class="ti">&#9650;</span><span>World</span></button>
+        </div>
+
+        <div id="gui-views">
+            <!-- Hero: character, account, wallet -->
+            <div id="view-dashboard">
+                <div class="gui-panel hero-char">
+                    <div class="view-title"><h3>Your Hero</h3><button class="tool-btn" id="hero-random" title="Random look">&#127922; Random</button></div>
+                    <div class="hero-top">
+                        <canvas id="hero-preview" width="28" height="44"></canvas>
+                        <div class="hero-name">
+                            <input class="txt-input" id="hero-name" maxlength="24" placeholder="Character name">
+                            <button class="gui-btn secondary" id="hero-rename">Rename</button>
+                            <button class="gui-btn" id="hero-save">Save look</button>
+                        </div>
+                    </div>
+                    <div id="hero-custom"></div>
+                    <div class="notice" id="hero-notice">Customize your look, then save it. Everyone in the world sees it.</div>
+                </div>
+                <div class="gui-panel">
+                    <h3>Account</h3>
+                    <div id="hero-account"></div>
+                </div>
+                <div class="gui-panel">
+                    <h3>Family mode</h3>
+                    <p class="muted small-note" id="family-status"></p>
+                    <div class="row"><input id="family-pin" type="password" inputmode="numeric" maxlength="8" placeholder="Parent PIN (4 to 8 digits)" autocomplete="off"><button class="gui-btn secondary" id="family-btn" type="button">Turn on</button></div>
+                    <p class="muted small-note">For parents: Family mode turns off buying Flux and cashing out, direct connections, names other players type, and demons. It stays on until the same PIN turns it off. Parents are responsible for supervising children's play.</p>
+                </div>
+                <div class="gui-panel family-hide">
+                    <h3>Connection</h3>
+                    <label class="home-open"><input type="checkbox" id="p2p-toggle"> Connect directly to nearby players</label>
+                    <p class="muted small-note">Smoother movement for players near you and less load on the game's servers. Both players need this on. A direct connection lets the other player's device see your IP address, so it's off unless you turn it on.</p>
+                    <p class="muted small-note" id="p2p-status"></p>
+                </div>
+                <div class="gui-panel">
+                    <h3>Home</h3>
+                    <div id="hero-home"></div>
+                </div>
+                <div class="gui-panel family-hide">
+                    <h3>Membership</h3>
+                    <div id="hero-members"><p class="muted small-note">Sign in to see member packages.</p></div>
+                </div>
+                <div class="gui-panel">
+                    <h3>Wallet</h3>
+                    <div id="hero-wallet" class="family-hide"></div>
+                    <p class="muted small-note family-only">Buying and cashing out are switched off in Family mode.</p>
+                    <div class="notice" id="wallet-notice">Flux buys market items and forging. 100 Flux per dollar when buying.</div>
+                    <p class="muted"><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a> &middot; <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a></p>
+                </div>
+                <div class="gui-panel" style="padding: 0; overflow: hidden;">
+                    <div id="log-container"><div>>> GUI Initialized. Awaiting directives...</div></div>
+                </div>
+            </div>
+
+            <!-- Pixel Forge -->
+            <div id="view-forge" class="gui-panel hidden">
+                <div class="view-title"><h3>The Forge</h3><span class="flux-pill">&#10022; <span class="flux-val">--</span> Flux</span></div>
+                <div id="forge-wrap">
+                    <div id="forge-canvas-box">
+                        <canvas id="forge-canvas" width="512" height="512"></canvas>
+                        <div class="row ftools">
+                            <button class="tool-btn" data-ftool="draw" title="Pencil">&#9998;</button>
+                            <button class="tool-btn" data-ftool="erase" title="Eraser">&#9003;</button>
+                            <button class="tool-btn" data-ftool="fill" title="Fill">&#129683;</button>
+                            <button class="tool-btn" data-ftool="line" title="Line">&#9585;</button>
+                            <button class="tool-btn" data-ftool="rect" title="Rectangle">&#9645;</button>
+                            <button class="tool-btn" data-ftool="circle" title="Ellipse">&#9711;</button>
+                            <button class="tool-btn" data-ftool="pick" title="Pick colour">&#128167;</button>
+                            <button class="tool-btn" data-ftool="depth" title="Depth brush (3D)">&#9650;3D</button>
+                        </div>
+                        <div class="row ftools">
+                            <button class="tool-btn" id="f-mirx" title="Mirror left/right">&#8596; Mirror</button>
+                            <button class="tool-btn" id="f-miry" title="Mirror up/down">&#8597; Mirror</button>
+                            <button class="tool-btn" id="f-undo" title="Undo (Ctrl+Z)">&#8630; Undo</button>
+                            <button class="tool-btn" id="f-redo" title="Redo">&#8631; Redo</button>
+                        </div>
+                    </div>
+                    <div id="forge-side">
+                        <div class="fsec"><small>Canvas</small><div class="row">
+                            <button class="tool-btn" data-fsize="16">16&times;16</button><button class="tool-btn" data-fsize="32">32&times;32</button><button class="tool-btn" data-fsize="64">64&times;64</button></div></div>
+                        <div class="fsec"><small>Layers (top layer wins)</small><div class="row layers">
+                            <button class="tool-btn" data-flayer="0">Base <span data-fvis="0"></span></button><button class="tool-btn" data-flayer="1">Detail <span data-fvis="1"></span></button><button class="tool-btn" data-flayer="2">Top <span data-fvis="2"></span></button></div></div>
+                        <div class="fsec" id="f-depthrow"><small>Depth (thickness of painted pixels in 3D)</small><div class="row">
+                            <button class="tool-btn" data-fdepth="1">1</button><button class="tool-btn" data-fdepth="2">2</button><button class="tool-btn" data-fdepth="3">3</button><button class="tool-btn" data-fdepth="4">4</button></div></div>
+                        <div class="swatches" id="swatches"></div>
+                        <button class="gui-btn secondary" id="forge-clear">Clear layer</button>
+                        <div class="f3d-box"><canvas id="forge-3d"></canvas><small>3D preview</small></div>
+                    </div>
+                    <div id="forge-item">
+                        <div class="fsec"><small>What is it?</small><div class="row types">
+                            <button class="tool-btn" data-ftype="tool">&#9874; Tool</button><button class="tool-btn" data-ftype="weapon">&#9876; Weapon</button>
+                            <button class="tool-btn" data-ftype="hat">&#127913; Hat</button><button class="tool-btn" data-ftype="cape">&#129507; Cape</button>
+                            <button class="tool-btn" data-ftype="boots">&#129406; Boots</button><button class="tool-btn" data-ftype="trinket">&#128141; Trinket</button>
+                            <button class="tool-btn" data-ftype="potion">&#129514; Potion</button><button class="tool-btn" data-ftype="decor">&#127962; Decor</button></div></div>
+                        <select class="txt-input hidden" id="f-effect">
+                            <option value="swift">Potion of Swiftness</option><option value="leap">Potion of Leaping</option><option value="glow">Potion of Glow</option><option value="breath">Potion of Tides</option>
+                        </select>
+                        <div class="fsec"><small>Tier</small><div class="row">
+                            <button class="tool-btn" data-ftier="1">Common</button><button class="tool-btn" data-ftier="2">Fine</button><button class="tool-btn" data-ftier="3">Masterwork</button></div></div>
+                        <div class="forge-info" id="forge-info"></div>
+                        <input class="txt-input" id="forge-name" maxlength="40" placeholder="Item name (1-40 characters)">
+                        <button class="gui-btn buy" id="forge-mint">Forge item</button>
+                        <div class="notice" id="forge-notice">Draw on up to three layers, paint depth for 3D, choose what it is, then forge it.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory -->
+            <div id="view-inventory" class="gui-panel hidden">
+                <div class="view-title"><h3>Inventory</h3><span class="flux-pill">&#10022; <span class="flux-val">--</span> Flux</span></div>
+                <div class="inv-equip" id="inv-equip"></div>
+                <div class="row inv-filters">
+                    <button class="tool-btn" data-invf="all">All</button><button class="tool-btn" data-invf="gear">Gear</button><button class="tool-btn" data-invf="potions">Potions</button>
+                    <button class="tool-btn" data-invf="decor">Decor</button><button class="tool-btn" data-invf="art">Art</button><button class="tool-btn" id="inv-refresh">&#8635;</button>
+                </div>
+                <div class="notice" id="inv-notice"></div>
+                <div class="pack-note" id="inv-fx"></div>
+                <div class="card-list" id="inv-list"></div>
+                <h4 class="inv-h">&#9733; Exclusive finds</h4>
+                <div class="mini-list" id="inv-excl"></div>
+                <h4 class="inv-h">Spellbook</h4>
+                <div class="mini-list" id="inv-spells"></div>
+                <h4 class="inv-h">Crafted gear</h4>
+                <div class="mini-list" id="inv-crafted"></div>
+                <h4 class="inv-h">Resources</h4>
+                <div class="res-grid" id="inv-res"></div>
+            </div>
+
+            <!-- Realm map -->
+            <div id="view-realm" class="gui-panel hidden">
+                <div class="view-title"><h3>World Map</h3><span class="flux-pill nearby">&#9678; <span class="nearby-val">0</span> nearby</span></div>
+                <div class="map-wrap"><canvas id="realm-canvas" width="480" height="480"></canvas></div>
+                <div class="row map-bar">
+                    <button class="tool-btn sel" id="map-follow">&#10148; Follow me</button><button class="tool-btn" id="map-haven">&#8962; Haven</button>
+                    <button class="tool-btn" id="map-zout">&minus;</button><span class="map-zoom" id="map-zoom">2x</span><button class="tool-btn" id="map-zin">+</button>
+                </div>
+                <div class="notice" id="realm-notice">The map fills in as you explore the World. Drag to pan.</div>
+                <button class="gui-btn secondary hidden" id="realm-seam">Test: jump to the world seam</button>
+            </div>
+
+            <!-- 3D World -->
+            <div id="view-world" class="gui-panel hidden">
+                <div class="view-title"><h3>The Wrapping World</h3><span class="flux-pill nearby">&#9678; <span class="nearby-val">0</span> nearby</span></div>
+                <div id="world-wrap">
+                    <canvas id="world-canvas"></canvas>
+                    <div class="w3-hud">
+                        <span class="w3-chip" id="w3-biome">&hellip;</span>
+                        <span class="w3-chip" id="w3-clock">--:--</span>
+                        <span class="w3-chip" id="w3-modechip" data-mode="walk">Walking</span>
+                        <span class="w3-chip" id="w3-coords">0, 0</span>
+                        <span class="w3-chip" id="w3-alt">alt 0</span>
+                    </div>
+                    <div class="w3-compass"><div id="w3-compass"></div><div id="w3-ruin" style="display:none"></div></div>
+                    <button class="w3-packbtn" id="w3-packbtn" title="Pack: crafting, quests, settings (I)">&#127890;<small>PACK</small></button>
+                    <button class="w3-packbtn w3-skybtn" id="w3-skybtn" title="Look at the sky / use your telescope (T)">&#128301;<small>SKY</small></button>
+                    <div class="w3-bars">
+                        <div class="w3-bar-row"><span id="w3-lvl">Lv 1</span><div class="w3-meter hp"><i id="w3-hp"></i><b id="w3-hp-t"></b></div></div>
+                        <div class="w3-meter mp"><i id="w3-mp"></i><b id="w3-mp-t"></b></div>
+                        <div class="w3-meter xp"><i id="w3-xp"></i></div>
+                    </div>
+                    <div class="w3-hotbar" id="w3-hotbar"></div>
+                    <div class="w3-dead hidden" id="w3-dead"><b>Defeated</b><span id="w3-dead-text"></span></div>
+                    <div class="w3-quest hidden" id="w3-quest"></div>
+                    <div id="w3-labels"></div>
+                    <div class="w3-guide" id="w3-guide" style="display:none"><b>&#9650;</b><i></i></div>
+                    <div class="w3-tut hidden" id="w3-tut"><span id="w3-tut-text"></span><button id="w3-tut-skip">Skip tutorial</button></div>
+                    <div class="w3-toasts" id="w3-toasts"></div>
+                    <div class="w3-knock hidden" id="w3-knock"></div>
+                    <div class="w3-knock w3-namedlg hidden" id="w3-name-dlg"><div class="knock-text" id="w3-name-what"></div><input id="w3-name-input" maxlength="32" placeholder="A name (2 to 32 letters)"><button class="gui-btn" id="w3-name-ok">Name it</button><button class="gui-btn secondary" id="w3-name-skip">Not now</button></div>
+                    <div class="w3-cross hidden" id="w3-cross"></div>
+                    <div class="w3-lockhint hidden" id="w3-lockhint">Click to look with the mouse &middot; click to attack &middot; Esc to let go</div>
+                    <button class="w3-action hidden" id="w3-action"></button>
+                    <div class="w3-scope hidden" id="w3-scope">
+                        <div class="scope-flash" id="scope-flash"></div>
+                        <div class="scope-reticle"></div>
+                        <div class="scope-ui scope-top">
+                            <select id="scope-inst" title="Instrument"></select>
+                            <span class="scope-rank" id="scope-rank"></span>
+                            <button class="scope-btn" id="scope-chart-btn" title="Observing log">&#9734; Log</button>
+                            <button class="scope-btn" id="scope-close" title="Stop looking (Esc)">&times;</button>
+                        </div>
+                        <div class="scope-ui scope-zoom"><button class="scope-btn" id="scope-in" title="Zoom in">+</button><button class="scope-btn" id="scope-out" title="Zoom out">&minus;</button></div>
+                        <div class="scope-ui scope-card hidden" id="scope-card"><b id="scope-name"></b><small id="scope-kind"></small><p id="scope-fact"></p><div class="scope-prog" id="scope-prog"></div></div>
+                        <div class="scope-info" id="scope-info"></div>
+                        <div class="scope-ui scope-chart hidden" id="scope-chart"></div>
+                    </div>
+                    <div class="w3-dialog hidden" id="w3-dialog">
+                        <div class="dlg-head"><div class="dlg-face" id="w3-dlg-face"></div><div><b id="w3-dlg-name"></b><small id="w3-dlg-role"></small></div><button class="dlg-x" id="w3-dlg-close" title="Close">&times;</button></div>
+                        <p id="w3-dlg-text"></p>
+                        <div class="dlg-opts" id="w3-dlg-opts"></div>
+                    </div>
+                    <div class="w3-pack hidden" id="w3-pack">
+                        <div class="pack-head">
+                            <button class="pack-tab" data-tab="craft">Craft</button>
+                            <button class="pack-tab" data-tab="make">Make</button>
+                            <button class="pack-tab" data-tab="skills">Skills</button>
+                            <button class="pack-tab" data-tab="quests">Quests</button>
+                            <button class="pack-tab" data-tab="camp">Camp</button>
+                            <button class="pack-tab" data-tab="guide">Guide</button>
+                            <button class="pack-tab" data-tab="settings">Settings</button>
+                            <button class="dlg-x" id="w3-pack-close" title="Close">&times;</button>
+                        </div>
+                        <div class="pack-body" id="w3-pack-body"></div>
+                    </div>
+                    <div id="w3-stick" class="hidden"><div id="w3-nub"></div></div>
+                    <div class="w3-actions">
+                        <button class="w3-act" id="w3-up" title="Jump / rise / swim up (Space)">&#9650;<small>UP</small></button>
+                        <button class="w3-act" id="w3-down" title="Descend / dive (Shift)">&#9660;<small>DOWN</small></button>
+                        <button class="w3-act" id="w3-fly" title="Toggle flight (G)">&#10148; Fly</button>
+                        <button class="w3-act" id="w3-boat" title="Boat: launch or go ashore (B)">&#9973; Boat</button>
+                    </div>
+                </div>
+                <div class="w3-bar">
+                    <button class="gui-btn secondary" id="w3-camtog" title="Camera">View</button>
+                    <button class="gui-btn secondary" id="w3-globe" title="Globe (M)">Globe</button>
+                    <button class="gui-btn secondary" id="w3-mode">Isometric</button>
+                    <button class="gui-btn secondary" id="w3-rotl" title="Rotate (Q)">&#8634;</button>
+                    <button class="gui-btn secondary" id="w3-rotr" title="Rotate (E)">&#8635;</button>
+                    <button class="gui-btn secondary" id="w3-zin" title="Zoom in">+</button>
+                    <button class="gui-btn secondary" id="w3-zout" title="Zoom out">&minus;</button>
+                </div>
+                <div class="notice" id="world-notice">Open this tab to enter the world. Drag to move; in first-person, drag the right half to look.</div>
+                <div class="keys-hint">Drag to move &middot; &#9650; jump, swim up or climb in flight &middot; &#9660; dive or descend &middot; Fly toggles flight &middot; the action button talks and gathers.
+                    Keyboard: <kbd>WASD</kbd> move, <kbd>Space</kbd> up, <kbd>Shift</kbd> down, <kbd>Enter</kbd> talk or gather, <kbd>Q</kbd>/<kbd>E</kbd> rotate, <kbd>M</kbd> globe, <kbd>I</kbd> pack, <kbd>G</kbd> fly, <kbd>F</kbd> view.</div>
+            </div>
+
+            <!-- Marketplace -->
+            <div id="view-market" class="gui-panel hidden">
+                <div class="view-title"><h3>Marketplace</h3><span class="flux-pill">&#10022; <span class="flux-val">--</span> Flux</span></div>
+                <div class="mkt-bar">
+                    <div class="mkt-filters" id="market-filters">
+                        <button data-mf="featured" class="sel">Featured</button><button data-mf="mythic">Mythic</button><button data-mf="legendary">Legendary</button><button data-mf="rare">Rare</button><button data-mf="shop">Shops</button><button data-mf="players">Players</button><button data-mf="models">3D Models</button>
+                    </div>
+                <div id="mkt-npc-bar" class="mkt-npc-bar hidden"><b></b><button type="button" class="gui-btn secondary small" onclick="window.MKT_NPC=null;renderMarket()">Show the whole market</button></div>
+                    <button class="gui-btn secondary" id="market-refresh">Refresh</button>
+                </div>
+                <p class="mkt-note">Mythic items are one of a kind. Legendary items come in numbered editions and never restock. Player sales carry a 10% market fee.</p>
+                <div class="notice" id="market-notice"></div>
+                <div class="card-list" id="market-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/world.js?v=mwgodx59"></script>
+    <script src="js/interiors.js?v=mwgodx59"></script>
+    <script src="js/roomart.js?v=mwgodx59"></script>
+    <script src="js/life.js?v=mwgodx59"></script>
+    <script src="js/craft.js?v=mwgodx59"></script>
+    <script src="js/relic-art.js?v=mwgodx59"></script>
+    <script src="js/forge.js?v=mwgodx59"></script>
+    <script src="js/adventure.js?v=mwgodx59"></script>
+    <script src="js/materials.js?v=mwgodx59"></script>
+    <script>const SUPABASE_URL="https://vbtbabkfvccnpvvstnni.supabase.co",SUPABASE_KEY="sb_publishable_GquqjWqrQgK56D8VGFvY0A_cGTkkcPg";let sb=null;try{window.supabase&&"function"==typeof window.supabase.createClient&&(sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:!0,autoRefreshToken:!0,detectSessionInUrl:!0}}))}catch(e){console.error("Supabase client initialization failed:",e)}function setBackendStatus(e,t){const a=document.getElementById("gui-status");a&&(a.textContent=e?"Online":"Offline"+(t?" · "+t:""),a.title=e?"Backend connected":"Backend offline"+(t?": "+t:""),a.classList.toggle("online",!!e),a.classList.toggle("offline",!e))}const ERROR_TEXT={not_authenticated:"Please sign in first.",already_have_home:"You already own a home in Haven.",home_taken:"Someone else just claimed that house.",invalid_house:"That isn't a house you can claim.",no_home:"You don't have a home.",request_not_found:"That visitor is no longer waiting.",too_many_requests:"Too many people are knocking right now. Try later.",invalid_name:"That name is not allowed.",character_limit_reached:"Character limit reached.",character_not_found:"Character not found.",out_of_bounds:"Position is outside world bounds.",invalid_pixel_data:"That pixel art is invalid or too large.",insufficient_funds:"Not enough Flux Shards.",invalid_price:"Price must be greater than zero.",item_not_found:"Item not found in your inventory.",listing_unavailable:"That listing is no longer available.",cannot_buy_own_listing:"You cannot buy your own listing.",invalid_item:"That item design or its stats are not allowed.",invalid_appearance:"That look is not allowed.",not_usable:"That item can't be used.",not_placeable:"Only decor items can be placed.",protected_area:"You can't place things inside Haven's walls.",placement_limit:"You've placed the maximum of 100 creations.",tile_occupied:"Something is already placed there.",out_of_bounds:"That spot is outside the world.",account_required:"Create an account first (Hero tab).",email_not_verified:"Confirm your email address first.",account_too_new:"Accounts must be at least 7 days old to cash out.",payout_email_missing:"Link your PayPal email first.",cashout_closed:"Cash-outs are not open yet.",invalid_amount:"Cash-outs start at 2,000 Flux, in steps of 100.",payout_pending:"You already have a cash-out waiting for review.",payout_cap:"That would pass the $100 per 30 days cash-out limit.",invalid_email:"Enter a valid email address.",payout_not_found:"That cash-out request can't be changed.",purchase_hold:"Flux you bought in the last 21 days can't be cashed out yet. Flux you earn or sell for can be."};function friendlyError(e){const t=e&&e.message||String(e),a=Object.keys(ERROR_TEXT).find(e=>t.includes(e));return a?ERROR_TEXT[a]:t}async function rpc(e,t){if(!sb)return{ok:!1,data:null,error:"Supabase client did not load. Check the network or CDN access."};const{data:a,error:n}=await sb.rpc(e,t);return n?{ok:!1,data:null,error:friendlyError(n)}:{ok:!0,data:a,error:null}}const state={phase:1,triggerClicks:0,fragments:0,miners:0,cores:0,constructors:0,userId:null,characterId:null,posX:2048,posY:2048,flux:100,backendStarted:!1,backendReady:null};function setFlux(e){state.flux=Number(e),document.querySelectorAll(".flux-val").forEach(e=>{e.textContent=state.flux})}async function refreshWallet(){if(!sb)return!1;const{data:e,error:t}=await sb.from("wallets").select("flux_shards").maybeSingle();return t?(logMessage("Wallet read failed: "+friendlyError(t)),!1):(e&&Number.isFinite(Number(e.flux_shards))&&setFlux(e.flux_shards),!!e)}async function initBackendSession(){return state.backendStarted||(state.backendStarted=!0,state.backendReady=(async()=>{try{if(!sb)throw new Error("Supabase JavaScript client did not load. Check your internet connection or CDN access.");let{data:e}=await sb.auth.getSession();if(!e.session){if(navigator.webdriver&&!new URLSearchParams(location.search).has("backend"))throw new Error("Test browser: playing offline");const{error:e}=await sb.auth.signInAnonymously();if(e)throw e}const{data:t,error:a}=await sb.auth.getUser();if(a||!t.user)throw a||new Error("No user");state.userId=t.user.id,state.isGuest=!!t.user.is_anonymous,"function"==typeof cloudLoad&&await cloudLoad(),setBackendStatus(!0),logMessage("Supabase session active. User authenticated.");const n=await sb.from("characters").select("*").eq("user_id",state.userId).order("updated_at",{ascending:!1}).limit(1);if(n.error)throw n.error;if(n.data&&n.data.length>0)state.characterId=n.data[0].id,state.charName=n.data[0].name,state.posX=Number(n.data[0].pos_x),state.posY=Number(n.data[0].pos_y),state.appearance=n.data[0].appearance||{},logMessage(`Loaded character: ${n.data[0].name} (${state.characterId})`);else{const e="Explorer_"+Math.floor(1e3*Math.random()),t=await rpc("create_character",{p_name:e});t.ok?(state.characterId=t.data,state.charName=e,logMessage(`Created new character ID: ${state.characterId}`)):logMessage(`Character creation failed: ${t.error}`)}return await refreshWallet(),startMarketWatcher(),!0}catch(e){return state.backendStarted=!1,setBackendStatus(!1,(e.message||String(e)).slice(0,100)),logMessage("Backend init warning: "+(e.message||e)),!1}})()),state.backendReady}function logMessage(e){const t=document.getElementById("log-container");if(!t)return;const a=document.createElement("div");a.textContent=`> ${e}`,t.appendChild(a),t.scrollTop=t.scrollHeight}function say(e,t,a){const n=document.getElementById(e);n.textContent=t,n.className="notice"+(a?" "+a:"")}function triggerHit(){state.triggerClicks++;const e=document.getElementById("trigger-word");1===state.triggerClicks?e.classList.add("glitch"):3===state.triggerClicks&&initiateTerminal()}const termOutput=document.getElementById("term-output"),termInput=document.getElementById("term-input");function initiateTerminal(){state.phase=2,document.getElementById("facade").classList.add("hidden"),document.getElementById("terminal-interface").classList.remove("hidden"),printLine("Wake up sequence initiated..."),setTimeout(()=>printLine("Establishing secure Supabase link... OK"),800),setTimeout(()=>printLine("Accessing local node... OK"),1600),setTimeout(()=>printLine("Welcome back. Type 'help' to view available commands."),2400),initBackendSession(),termInput.focus()}function printLine(e,t=!1){const a=document.createElement("div");a.className="output-line",a.textContent=t?`root@black-seam:~# ${e}`:e,termOutput.appendChild(a),document.getElementById("terminal-interface").scrollTop=termOutput.scrollHeight}function processCommand(e){switch(e){case"help":printLine("Available directives:"),printLine(" extract - Manually mine local data fragments."),printLine(" status - View current resource accumulation."),printLine(" override - Reconstruct visual GUI interface (Cost: 3 fragments).");break;case"extract":state.fragments++,printLine(`Extracted 1 data fragment. Total: ${state.fragments}`);break;case"status":printLine(`Fragments: ${state.fragments} | Flux: ${state.flux}`);break;case"ianisaturd":printLine("Developer override accepted. Launching GUI..."),setTimeout(initGui,600);break;case"override":state.fragments>=3?(state.fragments-=3,printLine("Interface override accepted. Launching GUI..."),setTimeout(initGui,1e3)):printLine(`ERROR: Insufficient fragments. Required: 3, Current: ${state.fragments}`);break;default:printLine(`Unknown directive: ${e}. Type 'help' for options.`)}}function initGui(){state.phase=3;try{localStorage.setItem("orn_intro_done","1")}catch(e){}document.getElementById("facade").classList.add("hidden"),document.getElementById("terminal-interface").classList.add("hidden"),document.getElementById("gui-interface").classList.remove("hidden"),setFlux(state.flux),logMessage("GUI Control Module online."),state.userId?setBackendStatus(!0):(setBackendStatus(!1,"connecting"),initBackendSession().then(e=>{e&&setBackendStatus(!0)}));const e=()=>{document.body.classList.contains("ring-ui")||(ringStart(),"world"!==state.view&&showView("world"))};"function"==typeof ringStart?e():window.addEventListener("load",()=>{"function"==typeof ringStart&&e()}),initBackendSession()}function showView(e){document.body.classList.contains("ring-ui")&&"world"===state.view&&"function"==typeof ringOpenSheet?"world"===e?ringCloseSheet():ringOpenSheet(e):(document.querySelectorAll(".tab-btn").forEach(t=>t.classList.toggle("active",t.dataset.view===e)),["dashboard","forge","inventory","market","realm","world"].forEach(t=>document.getElementById("view-"+t).classList.toggle("hidden",t!==e)),"realm"===state.view&&"realm"!==e&&leaveRealm(),document.getElementById("gui-views").scrollTop=0,"world"===state.view&&"world"!==e&&leaveWorld(),state.view=e,"world"===e&&enterWorld(),"realm"===e&&(mapResize(),enterRealm()),"dashboard"===e&&initBackendSession().then(()=>{refreshWallet(),heroRefresh()}),"forge"===e&&(renderForge(),forgeUpdateInfo(),initBackendSession().then(refreshWallet)),"inventory"===e&&loadInventory(),"market"===e&&loadMarket())}termInput.addEventListener("keydown",function(e){if("Enter"===e.key){const e=this.value.trim().toLowerCase();this.value="",e&&(printLine(e,!0),processCommand(e))}}),document.querySelectorAll(".tab-btn").forEach(e=>e.addEventListener("click",()=>showView(e.dataset.view)));const MKT={filter:"featured",rows:[]},RARITY_RANK={mythic:3,legendary:2,rare:1};async function loadMarket(){if(document.getElementById("market-list"),!await initBackendSession()||!state.characterId)return say("market-notice","Backend is not ready yet.","err");const{data:e,error:t}=await sb.from("marketplace_listings").select("*").eq("status","active").order("price",{ascending:!1}).limit(1e3);if(t)return say("market-notice",friendlyError(t),"err");MKT.rows=e||[],renderMarket()}function renderMarket(){const e=document.getElementById("market-list"),t=e=>e.pixel_data&&RARITY_RANK[e.pixel_data.rarity]?e.pixel_data.rarity:"",a=e=>e.pixel_data&&"string"==typeof e.pixel_data.npc;let n=MKT.rows.slice();const s=MKT.filter;"mythic"===s||"legendary"===s||"rare"===s?n=n.filter(e=>t(e)===s):"shop"===s?n=n.filter(e=>a(e)&&!t(e)).sort((e,t)=>e.price-t.price):"players"===s?n=n.filter(e=>!a(e)):"models"===s&&(n=n.filter(e=>e.pixel_data&&e.pixel_data.model)),"function"==typeof mdlBlocked&&(n=n.filter(e=>!(e.pixel_data&&e.pixel_data.model&&mdlBlocked(e.pixel_data.model.path))));const i=document.getElementById("mkt-npc-bar");if(window.MKT_NPC&&window.MKT_NPC.names)n=n.filter(e=>e.pixel_data&&window.MKT_NPC.names.includes(e.pixel_data.npc)),i&&(i.classList.remove("hidden"),i.querySelector("b").textContent=window.MKT_NPC.title+"'s collection");else if(i)i.classList.add("hidden");else{const e=new Set;n=n.filter(e=>t(e)).sort((e,a)=>RARITY_RANK[t(a)]-RARITY_RANK[t(e)]||a.price-e.price).filter(t=>{const a=t.item_name;return!e.has(a)&&(e.add(a),!0)})}const r=e=>MKT.rows.filter(t=>t.item_name===e).length;if(say("market-notice",n.length?`${n.length} listing(s).`:""),e.textContent="",!n.length){const t=document.createElement("div");return t.className="empty",t.textContent="Nothing here right now.",void e.appendChild(t)}for(const a of n){const n=a.seller_id===state.userId,i=a.pixel_data||{},o=t(a),{name:l,art:c,item:d}=itemDisplay(i,a.item_name),u=document.createElement("div");if(u.className="card"+(o?" r-"+o:""),o){const e=document.createElement("div");e.className="rarity-tag";const t=i.edition&&i.edition.of;e.textContent="mythic"===o?"Mythic · 1 of 1":"legendary"===o?"Legendary · "+("featured"===s?r(a.item_name)+" of "+t+" left":"#"+i.edition.n+" of "+t):"Rare",u.appendChild(e)}if(i.model&&"function"==typeof mdlThumb){const e=document.createElement("img");e.className="mdl-thumb",e.width=e.height=160,mdlThumb(i.model,e),u.appendChild(e);const t=document.createElement("div");t.className="mdl-tag",t.textContent="3D",u.appendChild(t)}else{const e=document.createElement("canvas");drawArt(e,c),u.appendChild(e)}const m=document.createElement("div");m.className="nm",m.textContent=l,u.appendChild(m);const p=document.createElement("div");if(p.className="meta",p.textContent=n?"Your listing":"string"==typeof i.npc?i.npc.slice(0,40):"Player listing",u.appendChild(p),d&&"function"==typeof itemSummary){const e=document.createElement("div");e.className="desc stat",e.textContent=itemSummary(d),u.appendChild(e)}if("earnable"===i.gear_path||"cosmetic"===i.gear_path){const e=document.createElement("div");e.className="gear-path "+i.gear_path,e.textContent="earnable"===i.gear_path?"⚔ Also drops in the world":"✨ Cosmetic look · its stats drop in the world","cosmetic"===i.gear_path&&i.item&&i.item.earned_stats&&"function"==typeof itemSummary&&(e.title="World drop: "+itemSummary(Object.assign({},i.item,{stats:i.item.earned_stats}))),u.appendChild(e)}if("string"==typeof i.desc){const e=document.createElement("div");e.className="desc",e.textContent=i.desc.slice(0,120),u.appendChild(e)}const f=document.createElement("div");if(f.className="card-actions",i.model&&"function"==typeof mdlView){const e=document.createElement("button");e.className="gui-btn secondary small",e.textContent="View in 3D",e.addEventListener("click",()=>mdlView(i.model,l)),f.appendChild(e)}else if(c&&c.depth&&"function"==typeof show3D){const e=document.createElement("button");e.className="gui-btn secondary small",e.textContent="View in 3D",e.addEventListener("click",()=>show3D(c,l)),f.appendChild(e)}const h=document.createElement("button");h.className=n?"gui-btn secondary":"gui-btn buy",h.textContent=n?"Cancel listing":`Buy · ✦ ${Number(a.price).toLocaleString()}`,h.addEventListener("click",async()=>{if(!n&&Number(a.price)>state.flux)return void say("market-notice",`You need ${Number(a.price).toLocaleString()} Flux. Top up in the Hero tab.`,"err");if(!n&&Number(a.price)>=1e3&&!confirm(`Buy "${l}" for ${Number(a.price).toLocaleString()} Flux?`))return;h.disabled=!0;const e=n?await rpc("cancel_listing",{p_listing_id:a.id,p_character_id:state.characterId}):await rpc("buy_listing",{p_listing_id:a.id,p_character_id:state.characterId});if(!e.ok)return h.disabled=!1,say("market-notice",e.error,"err"),loadMarket();say("market-notice",n?"Listing cancelled. Item returned.":`Bought "${l}". It's in your Inventory.`,"ok"),refreshWallet(),loadMarket()}),f.appendChild(h),u.appendChild(f),e.appendChild(u)}}document.querySelectorAll("#market-filters [data-mf]").forEach(e=>e.addEventListener("click",()=>{MKT.filter=e.dataset.mf,document.querySelectorAll("#market-filters [data-mf]").forEach(t=>t.classList.toggle("sel",t===e)),renderMarket()})),document.getElementById("market-refresh").addEventListener("click",loadMarket);let marketTimer=null,marketChannel=null;function startMarketWatcher(){marketChannel||(marketChannel=sb.channel("marketplace-feed").on("postgres_changes",{event:"*",schema:"public",table:"marketplace_listings"},()=>{"market"===state.view&&(clearTimeout(marketTimer),marketTimer=setTimeout(loadMarket,400))}).subscribe())}const REALM={size:65536,cell:512,cells:128,view:480,speed:160,sendMs:200,idleMs:3e3,aloneMoveMs:1500,aloneIdleMs:8e3,directMs:4e3,sentCount:0,lastPayload:"",channels:new Map,ready:new Set,pending:new Set,started:!1,cellKey:"",lastSync:0,shownNearby:-1,raf:0,last:0,lastSent:0,peers:new Map,keys:{},pointer:null,noticeId:"realm-notice",hint:"The map fills in as you explore. Drag to pan.",lastSaved:{x:null,y:null,at:0},saving:!1},UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,wrapW=e=>(e%REALM.size+REALM.size)%REALM.size,wrapDelta=e=>e-REALM.size*Math.round(e/REALM.size),cellOf=e=>Math.floor(wrapW(e)/REALM.cell),topicFor=(e,t)=>`realm:c:${(e%REALM.cells+REALM.cells)%REALM.cells}:${(t%REALM.cells+REALM.cells)%REALM.cells}`;function peerColor(e){let t=0;for(let a=0;a<e.length;a++)t=(31*t+e.charCodeAt(a))%360;return`hsl(${t}, 80%, 60%)`}function onPeerMove(e){if(!e||"string"!=typeof e.id||!UUID_RE.test(e.id)||e.id===state.userId)return;const t=Number(e.x),a=Number(e.y);if(!Number.isFinite(t)||!Number.isFinite(a))return;let n=REALM.peers.get(e.id);if(!n){if(REALM.peers.size>=150)return;n={x:wrapW(t),y:wrapW(a),tx:0,ty:0,name:"",seen:0},REALM.peers.set(e.id,n)}n.tx=wrapW(t),n.ty=wrapW(a),n.seen=performance.now();const s=Number(e.z);void 0!==e.z&&Number.isFinite(s)?(n.tz=Math.min(80,Math.max(-5,s)),Number.isFinite(n.z)||(n.z=n.tz)):(n.tz=void 0,n.z=void 0),n.m="swim"===e.m||"fly"===e.m||"boat"===e.m||"in"===e.m?e.m:"walk",n.v=["rowboat","sailboat","skiff","airship"].includes(e.v)?e.v:null,n.f=Number.isFinite(Number(e.f))?Number(e.f):null,"string"==typeof e.n&&(n.name=e.n.slice(0,24)),1===e.p2p&&(n.p2p=!0)}function wantedTopics(){const e=cellOf(state.posX),t=cellOf(state.posY),a=[topicFor(e,t)];for(let n=-1;n<=1;n++)for(let s=-1;s<=1;s++)(n||s)&&a.push(topicFor(e+n,t+s));return{center:a[0],list:a}}function updateRealmNotice(){const{center:e}=wantedTopics();REALM.ready.has(e)&&say(REALM.noticeId,`Connected (${REALM.ready.size}/9 nearby areas live). ${REALM.hint}`,"ok")}function joinCell(e){const t=sb.channel(e,{config:{private:!0,broadcast:{self:!1}}});t.on("broadcast",{event:"move"},({payload:e})=>onPeerMove(e)),t.on("broadcast",{event:"sig"},({payload:e})=>{"function"==typeof p2pOnSig&&p2pOnSig(e)}),t.on("broadcast",{event:"nx"},({payload:e})=>{"function"==typeof qsOnNet&&qsOnNet(e)}),REALM.channels.set(e,t),t.subscribe((a,n)=>{REALM.channels.get(e)===t&&("SUBSCRIBED"===a?(REALM.ready.add(e),REALM.fails=0,updateRealmNotice()):"CHANNEL_ERROR"!==a&&"TIMED_OUT"!==a&&"CLOSED"!==a||(REALM.ready.delete(e),REALM.channels.delete(e),sb.removeChannel(t),e===wantedTopics().center&&(REALM.fails=(REALM.fails||0)+1,REALM.fails>=4&&say(REALM.noticeId,"Reconnecting to nearby players…"),console.warn("realtime",e,a,n&&n.message))))})}function syncCells(){if(!REALM.started)return;REALM.lastSync=performance.now();const{list:e}=wantedTopics();for(const[t,a]of REALM.channels)e.includes(t)||(REALM.channels.delete(t),REALM.ready.delete(t),sb.removeChannel(a));let t=0;for(const a of e)REALM.channels.has(a)||REALM.pending.has(a)||(REALM.pending.add(a),setTimeout(()=>{REALM.pending.delete(a),REALM.started&&!REALM.channels.has(a)&&wantedTopics().list.includes(a)&&joinCell(a)},120*t++))}async function enterRealm(){const e=await initBackendSession();if("realm"===state.view){if(!e||!state.characterId)return say("realm-notice","Backend is not ready yet. Re-open this tab in a moment.","err");markExplored(Math.floor(state.posX/WORLD.chunk),Math.floor(state.posY/WORLD.chunk)),REALM.raf||(REALM.last=performance.now(),REALM.raf=requestAnimationFrame(realmFrame)),netStart("realm-notice","realm")}}async function netStart(e,t){if(REALM.noticeId=e,null===REALM.lastSaved.x&&(REALM.lastSaved.x=state.posX,REALM.lastSaved.y=state.posY),!REALM.started){REALM.started=!0,say(e,"Connecting...");try{await sb.realtime.setAuth()}catch(t){return REALM.started=!1,say(e,"Could not authorize Realtime: "+(t&&t.message?t.message:t),"err")}state.view===t?syncCells():REALM.started=!1}}function leaveRealm(){cancelAnimationFrame(REALM.raf),REALM.raf=0,REALM.pointer=null,REALM.keys={},netStop()}function netStop(){maybeSavePosition(!0),REALM.started=!1;for(const e of REALM.channels.values())sb.removeChannel(e);REALM.channels.clear(),REALM.ready.clear(),REALM.pending.clear(),REALM.peers.clear(),REALM.cellKey="",REALM.shownNearby=-1,setNearby(0)}function setNearby(e){e!==REALM.shownNearby&&(REALM.shownNearby=e,document.querySelectorAll(".nearby-val").forEach(t=>{t.textContent=e}))}async function maybeSavePosition(e){if(!state.characterId||REALM.saving)return;const t=REALM.lastSaved,a=Date.now();if(!(null===t.x||Math.hypot(wrapDelta(state.posX-t.x),wrapDelta(state.posY-t.y))>=(e?2:24))||!e&&a-t.at<15e3)return;REALM.saving=!0;const n=state.posX,s=state.posY,i=await rpc("save_character_position",{p_character_id:state.characterId,p_x:n,p_y:s});REALM.saving=!1,t.at=a,i.ok&&!0===i.data&&(t.x=n,t.y=s)}function netStep(e,t,a){const n=cellOf(state.posX)+":"+cellOf(state.posY);REALM.started&&(n!==REALM.cellKey||e-REALM.lastSync>5e3)&&(REALM.cellKey=n,syncCells());const s=Date.now(),i=topicFor(cellOf(state.posX),cellOf(state.posY)),r={x:Math.round(10*state.posX)/10,y:Math.round(10*state.posY)/10,..."world"===state.view?{z:Math.round(10*W3.body.z)/10,m:W3.inside?"in":W3.body.mode}:{}};if("world"===state.view&&!W3.inside){const e="boat"===W3.body.mode?W3.body.boat:"fly"===W3.body.mode&&"undefined"!=typeof ADV&&"airship"===ADV.flySrc?"airship":null;e&&(r.v=e,r.f=Math.round(20*("undefined"!=typeof ADV&&null!=ADV.shipYaw?ADV.shipYaw:W3.facing))/20)}const o="function"==typeof p2pStep&&!document.hidden&&p2pStep(a,Object.assign({n:"function"==typeof agentPublicName?agentPublicName():state.charName||"Explorer"},r)),l=0===REALM.peers.size,c=o?REALM.directMs:l?a?REALM.aloneMoveMs:REALM.aloneIdleMs:a?REALM.sendMs:REALM.idleMs,d=JSON.stringify(r),u=d!==REALM.lastPayload;if(!document.hidden&&REALM.ready.has(i)&&s-REALM.lastSent>=c&&(u||s-REALM.lastSent>=Math.max(c,REALM.idleMs))){REALM.lastSent=s,REALM.lastPayload=d,REALM.sentCount++;const e=Object.assign({id:state.userId},r);(REALM.sentCount<=3||REALM.sentCount%10==0)&&(e.n="function"==typeof agentPublicName?agentPublicName():state.charName||"Explorer"),"undefined"!=typeof P2P&&P2P.on&&(e.p2p=1),REALM.channels.get(i).send({type:"broadcast",event:"move",payload:e})}maybeSavePosition(!1);for(const[a,n]of REALM.peers){const s=Math.abs(wrapDelta(n.x-state.posX))>2*REALM.cell||Math.abs(wrapDelta(n.y-state.posY))>2*REALM.cell;if(e-n.seen>12e3||s){REALM.peers.delete(a);continue}const i=Math.min(1,10*t);n.x=wrapW(n.x+wrapDelta(n.tx-n.x)*i),n.y=wrapW(n.y+wrapDelta(n.ty-n.y)*i),Number.isFinite(n.tz)&&(n.z+=(n.tz-n.z)*i)}setNearby(REALM.peers.size)}const MOVE_KEYS=["arrowleft","arrowright","arrowup","arrowdown","w","a","s","d"];window.addEventListener("keydown",e=>{if("realm"!==state.view&&"world"!==state.view||/^(INPUT|TEXTAREA)$/.test(document.activeElement&&document.activeElement.tagName))return;const t=e.key.toLowerCase();MOVE_KEYS.includes(t)&&(REALM.keys[t]=!0,e.preventDefault())}),window.addEventListener("keyup",e=>{delete REALM.keys[e.key.toLowerCase()]}),document.addEventListener("visibilitychange",()=>{!document.hidden||"realm"!==state.view&&"world"!==state.view||maybeSavePosition(!0)}),window.addEventListener("pagehide",()=>{"realm"!==state.view&&"world"!==state.view||maybeSavePosition(!0)}),document.getElementById("realm-seam").addEventListener("click",()=>{state.posX=65500,state.posY=100,REALM.pointer=null}),forgeInit(),sb||console.warn("Supabase client unavailable. The facade, terminal, and local forge remain available; online features are disabled."),function(){const e=new URLSearchParams(location.search);let t=!1;try{t="1"===localStorage.getItem("orn_intro_done")}catch(e){}if(e.has("agent")){try{localStorage.setItem("orn_intro_done","1"),localStorage.setItem("orn_agent","1")}catch(e){}return initGui()}if("ianisaturd"===e.get("dev")&&document.getElementById("realm-seam").classList.remove("hidden"),"ianisaturd"===e.get("dev")||t&&!e.has("intro"))return initGui();if("classic"===e.get("intro"))return document.getElementById("facade").classList.remove("hidden");const a=()=>cineTitle(()=>{initGui(),cineQueue(),showView("world")});"function"==typeof cineTitle?a():window.addEventListener("load",a)}();</script>
+    <script src="js/p2p.js?v=mwgodx59"></script>
+    <script src="js/inventory.js?v=mwgodx59"></script>
+    <script src="js/hero.js?v=mwgodx59"></script>
+    <script src="js/map.js?v=mwgodx59"></script>
+    <script src="js/creatures.js?v=mwgodx59"></script>
+    <script src="js/grandships.js?v=mwgodx59"></script>
+    <script src="js/landscape.js?v=mwgodx59"></script>
+    <script src="js/divine.js?v=mwgodx59"></script>
+    <script src="js/haven.js?v=mwgodx59"></script>
+    <script src="js/core.js?v=mwgodx59"></script>
+    <script src="js/nexus.js?v=mwgodx59"></script>
+    <script src="js/quests.js?v=mwgodx59"></script>
+    <script src="js/archery.js?v=mwgodx59"></script>
+    <script src="js/homes.js?v=mwgodx59"></script>
+    <script src="js/chat.js?v=mwgodx59"></script>
+    <script src="js/members.js?v=mwgodx59"></script>
+    <script src="js/merchants.js?v=mwgodx59"></script>
+    <script src="js/navy.js?v=mwgodx59"></script>
+    <script src="js/tides.js?v=mwgodx59"></script>
+    <script src="js/collide.js?v=mwgodx59"></script>
+    <script src="js/settlements.js?v=mwgodx59"></script>
+    <script src="js/wanderers.js?v=mwgodx59"></script>
+    <script src="js/elements.js?v=mwgodx59"></script>
+    <script src="js/wonders.js?v=mwgodx59"></script>
+    <script src="js/flora.js?v=mwgodx59"></script>
+    <script src="js/telemetry.js?v=mwgodx59"></script>
+    <script src="js/sfx.js?v=mwgodx59"></script>
+    <script src="js/models.js?v=mwgodx59"></script>
+    <script src="js/engine.js?v=mwgodx59"></script>
+    <script src="js/cinematic.js?v=mwgodx59"></script>
+    <script src="js/sky-data.js?v=mwgodx59"></script>
+    <script src="js/sky.js?v=mwgodx59"></script>
+    <script src="js/fx.js?v=mwgodx59"></script>
+    <script src="js/lore.js?v=mwgodx59"></script>
+    <script src="js/atmos.js?v=mwgodx59"></script>
+    <script src="js/library.js?v=mwgodx59"></script>
+    <script src="js/ambience.js?v=mwgodx59"></script>
+    <script src="js/voice.js?v=mwgodx59"></script>
+    <script src="js/update.js?v=mwgodx59"></script>
+    <script src="js/ring.js?v=mwgodx59"></script>
+    <script src="js/ambient.js?v=mwgodx59"></script>
+    <script src="js/shipwright.js?v=mwgodx59"></script>
+    <script src="js/courier.js?v=mwgodx59"></script>
+    <script src="js/lorefrag.js?v=mwgodx59"></script>
+    <script src="js/chars.js?v=mwgodx59"></script>
+    <script src="js/realism.js?v=mwgodx59"></script>
+    <script src="js/icons.js?v=mwgodx59"></script>
+    <script src="js/plain.js?v=mwgodx59"></script>
+    <script src="js/agent.js?v=mwgodx59"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+A Field Guide to the Realm
+
+Written for new travellers by the Haven Wayfinders. Everything here is how the world really behaves. Learn it and the land will keep you alive.
+
+THE SEA AND ITS TIDES
+
+The sea rises and falls twice in every game day. The pull is strongest at the new moon and the full moon, when the spring tides run high and low. Once in a while a king tide comes, higher than any other.
+
+At low tide the shallows drain into wide tidal flats. Walk them before the water comes back. Shells, kelp, pearls and ambergris wash up there, and now and then a message in a bottle. A bottle holds a treasure map to a spot somewhere in the wide world.
+
+The swell grows with the wind. In a storm at sea a rogue wave can rear up. Take it bow-on and you ride it; take it broadside and your hull pays.
+
+On dark nights the sea can glow with living light, brightest in the wake of your boat.
+
+RIVERS, LAKES AND FLOODS
+
+Rivers keep a flat surface across their width and step down only at waterfalls. After long, heavy rain the rivers and lakes swell and their currents run fast. Cross with care, or wait for the sun.
+
+VOLCANOES AND LAVA
+
+Volcanoes smoke, glow and erupt on a shared clock, so every traveller sees the same eruption at the same moment. Their craters hold lava: a skin of dark crust split by glowing cracks, with open pools of molten rock where the crust breaks.
+
+Most eruptions are short bursts of lava fountains and glowing bombs. About one in six is a great eruption. A pressure wave races out across the land, and its boom reaches you late if you are far away, as sound does. An ash column climbs hundreds of metres and spreads into a cloud downwind, with lightning flickering inside it. Glowing clouds of hot ash roll down the lava channels, and ash falls over everyone nearby while the sky turns brown and dim. Watch from a distance. You can see every volcano on the Globe, and the ones erupting right now pulse red.
+
+Lava burns anyone who stands in it, and the game will warn you to get off it. Rain cools it a little, but never enough to make it safe. Keep to the dark rock around the crater.
+
+WEATHER AND WHAT IT DOES
+
+Weather moves across the world in fronts: clear skies, cloud, fog, rain, storms, snow and blizzards. Each place has its own weather, so you can walk out of a storm.
+
+Rain soaks the ground. It turns darker and shinier, then dries again in sun and wind.
+
+Seasons follow the calendar where you stand on the globe. In the northern half of the world, winter runs from December to February; in the southern half it is six months later, so you can walk from autumn into spring. Near the equator it never snows. Beyond the polar circles the snow stays through spring and autumn.
+
+THE SKY OVER THE GLOBE
+
+How far north or south you are changes the sky. Haven lies at about 46 degrees north. Walk south and the Southern Cross rises; walk far enough north and the Pole Star stands overhead. The Globe shows your latitude and longitude.
+
+The aurora follows the night's magnetic storm. On a quiet night its ring of light sits near the polar circles; in a great storm it pushes toward the equator, down to about 47 degrees. Under the ring the aurora is right overhead. Further away it hangs low over the horizon toward the pole. It is green at the bottom, with pink lower edges and red crowns on the strongest nights. In the north it is the aurora borealis, in the south the aurora australis. Clouds hide it. The Globe shows tonight's rings.
+
+A solar eclipse is total only along a narrow path. Within about 35 degrees of that path the Moon takes a bite out of the sun, and beyond that nothing happens. The Globe marks the day's path when there is one.
+
+Lightning, or a hot dry summer afternoon, can set grass, savanna and forest alight. Fire walks downwind, faster over dry ground, and rain puts it out. It leaves scorched earth that greens over again in time. Standing in fire burns you; gliding or flying low over it lifts you on the hot updraft.
+
+VESSELS
+
+The Rowboat is a little boat for rivers and lakes. Build it from wood and rope, then tap Boat at the water's edge.
+
+The Galleon is a three-masted warship some thirty tiles long, with two gun decks. You stand at the wheel on the quarterdeck.
+
+The Sky Skiff is a small crystal-powered flying craft. The Sky Galleon hangs a great gasbag over an armoured gondola with four engines and wing sails. It flies higher and faster than a skiff.
+
+Build the Galleon, the Sky Skiff and the Sky Galleon at a workshop.
+
+From the helm of a Galleon or Sky Galleon, fire to port with J, from the bow with K, or to starboard with L. Press V for the bridge view, a camera behind your vessel. Your hull takes damage. Pirate brigs prowl the open sea and sky raiders hunt the clouds; sink them for their loot crates.
+
+To paint your own Galleon or Sky Galleon, open Settings and choose Ship and airship colours. The Shipwright offers six liveries for each, or a colour for every part: hull, stripe, sails, gasbag, fins, crest and flag. Pirates and raiders keep their own colours.
+
+LORE FRAGMENTS
+
+Twenty fragments of the realm's story lie at fixed places across its lands, each beside a trail or on open ground. Look for a faint, warm shaft of light. Walk onto one to read it, and it joins the Wanderer's Compendium on this shelf.
+
+One of them, a shell, whispers two numbers. The numbers on your screen are your position.
+
+THE COURIER
+
+If something in the world looks wrong, like a tree in the air, a wall you can walk through, or a flicker, stand where it is and tell the Courier. Use the mailbox on Haven's plaza by the fountain, or Report a problem in Settings. Your exact position goes with the report, so it can be fixed.
