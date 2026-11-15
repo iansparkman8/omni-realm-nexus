@@ -1,0 +1,314 @@
+{
+  "kit": "room_kit",
+  "batch": "phase1 b6",
+  "status": "in repo at assets/room, NOT WIRED",
+  "for": "Claude to wire",
+  "replaces": "green-cube / box-primitive interiors (js/interiors.js interiorLayout parts)",
+  "style": "Haven painted myth: warm timber, cream plaster, plum-tinted shadows, chunky bevels",
+  "conventions": {
+    "format": "glTF 2.0 binary",
+    "up": "+Y",
+    "front": "+Z (room side)",
+    "units": "metres",
+    "pivot": "base centre",
+    "floors": "2x2 m tiles, top at y=0",
+    "walls": "2 m wide, inner face z=0, 0.2 m thick toward -Z; 3.2 m (ROOM_H) or 5 m (wall_tall_stone_2m)",
+    "textures": "image URIs stripped from glbs; shared atlases are sidecar webps in this folder. Engine should apply room_atlas_{albedo,mr,emissive}.webp (phones: room_atlas_albedo_512.webp).",
+    "material": "room_kit_mat (one material, all pieces); emissive texture lights only the fire cell",
+    "tinting": "plaster cell is near-white cream so the game's pal.wall tint can multiply it",
+    "extras": "omniShareAtlas, omniShareAtlasUri, omniLod, omniKitGroup, notWired"
+  },
+  "atlas": {
+    "name": "room_kit_atlas",
+    "albedo": "room_atlas_albedo.webp",
+    "mr": "room_atlas_mr.webp",
+    "emissive": "room_atlas_emissive.webp",
+    "albedo_low": "room_atlas_albedo_512.webp",
+    "grid": "4x4 cells of 256 px, margin 0.03",
+    "cells": {
+      "floor_wood": {
+        "row": 0,
+        "col": 0
+      },
+      "floor_stone": {
+        "row": 0,
+        "col": 1
+      },
+      "plaster": {
+        "row": 0,
+        "col": 2
+      },
+      "timber": {
+        "row": 0,
+        "col": 3
+      },
+      "wood": {
+        "row": 1,
+        "col": 0
+      },
+      "wood_light": {
+        "row": 1,
+        "col": 1
+      },
+      "brick": {
+        "row": 1,
+        "col": 2
+      },
+      "hearthstone": {
+        "row": 1,
+        "col": 3
+      },
+      "iron": {
+        "row": 2,
+        "col": 0
+      },
+      "fabric_red": {
+        "row": 2,
+        "col": 1
+      },
+      "fabric_blue": {
+        "row": 2,
+        "col": 2
+      },
+      "linen": {
+        "row": 2,
+        "col": 3
+      },
+      "straw": {
+        "row": 3,
+        "col": 0
+      },
+      "books": {
+        "row": 3,
+        "col": 1
+      },
+      "terracotta": {
+        "row": 3,
+        "col": 2
+      },
+      "fire": {
+        "row": 3,
+        "col": 3
+      }
+    }
+  },
+  "budgets": {
+    "structure": [
+      500,
+      300,
+      100
+    ],
+    "furniture": [
+      900,
+      400,
+      150
+    ],
+    "hearth": [
+      1500,
+      700,
+      250
+    ],
+    "suggested_lod_distances_m": {
+      "lod1": 8,
+      "lod2": 18
+    },
+    "phone": "albedo_512_low + LOD1"
+  },
+  "game_primitive_map": {
+    "y() table": "table_long / table_small",
+    "p() chair": "chair",
+    "u() bookshelf": "bookshelf",
+    "x() rug": "rug",
+    "g() hearth": "hearth_brick (hearth_grand in landmarks)",
+    "_() barrel": "barrel",
+    "E() crate": "crate",
+    "L() bed": "bed_single",
+    "I() pot": "pot",
+    "R() candle": "candle_stand",
+    "v() counter": "counter"
+  },
+  "suggested_pieces_by_interior_kind": {
+    "house": [
+      "bed_single",
+      "hearth_brick",
+      "table_small",
+      "chair",
+      "rug",
+      "chest",
+      "pot",
+      "bookshelf",
+      "candle_stand"
+    ],
+    "inn": [
+      "counter",
+      "barrel",
+      "hearth_brick",
+      "table_long",
+      "bench",
+      "chair",
+      "rug",
+      "candle_stand"
+    ],
+    "shop": [
+      "counter",
+      "bookshelf",
+      "crate"
+    ],
+    "hall": [
+      "rug",
+      "table_long",
+      "chair",
+      "chest"
+    ],
+    "library": [
+      "bookshelf",
+      "table_small",
+      "chair",
+      "candle_stand"
+    ],
+    "armory": [
+      "anvil",
+      "hearth_brick",
+      "weapon_rack"
+    ],
+    "workshop": [
+      "table_long",
+      "wall_shelf",
+      "crate",
+      "barrel",
+      "bench"
+    ],
+    "apothecary": [
+      "bookshelf",
+      "cauldron",
+      "counter",
+      "wall_shelf"
+    ],
+    "observatory": [
+      "hearth_brick",
+      "crate"
+    ],
+    "barracks": [
+      "bed_single",
+      "weapon_rack",
+      "table_long"
+    ],
+    "stables": [
+      "crate",
+      "barrel",
+      "counter"
+    ],
+    "bakery": [
+      "oven_bakery",
+      "counter",
+      "barrel"
+    ],
+    "docks": [
+      "table_long",
+      "crate",
+      "barrel"
+    ],
+    "cathedral": [
+      "bench",
+      "rug",
+      "hearth_grand",
+      "candle_stand",
+      "wall_tall_stone_2m"
+    ],
+    "citadel": [
+      "rug",
+      "table_long",
+      "hearth_grand",
+      "weapon_rack",
+      "barrel",
+      "wall_tall_stone_2m"
+    ],
+    "spire": [
+      "bookshelf",
+      "table_small",
+      "cauldron",
+      "wall_tall_stone_2m"
+    ],
+    "bazaar": [
+      "counter",
+      "rug",
+      "barrel",
+      "crate",
+      "candle_stand"
+    ],
+    "skydock": [
+      "table_long",
+      "crate",
+      "chest"
+    ]
+  },
+  "files": {
+    "glbs": [
+      "room_anvil.glb",
+      "room_anvil_lod1.glb",
+      "room_barrel.glb",
+      "room_barrel_lod1.glb",
+      "room_bed_single.glb",
+      "room_bed_single_lod1.glb",
+      "room_bench.glb",
+      "room_bench_lod1.glb",
+      "room_bookshelf.glb",
+      "room_bookshelf_lod1.glb",
+      "room_candle_stand.glb",
+      "room_candle_stand_lod1.glb",
+      "room_cauldron.glb",
+      "room_cauldron_lod1.glb",
+      "room_ceiling_beam_4m.glb",
+      "room_ceiling_beam_4m_lod1.glb",
+      "room_chair.glb",
+      "room_chair_lod1.glb",
+      "room_chest.glb",
+      "room_chest_lod1.glb",
+      "room_counter.glb",
+      "room_counter_lod1.glb",
+      "room_crate.glb",
+      "room_crate_lod1.glb",
+      "room_floor_stone_2m.glb",
+      "room_floor_stone_2m_lod1.glb",
+      "room_floor_wood_2m.glb",
+      "room_floor_wood_2m_lod1.glb",
+      "room_hearth_brick.glb",
+      "room_hearth_brick_lod1.glb",
+      "room_hearth_grand.glb",
+      "room_hearth_grand_lod1.glb",
+      "room_oven_bakery.glb",
+      "room_oven_bakery_lod1.glb",
+      "room_pot.glb",
+      "room_pot_lod1.glb",
+      "room_rug.glb",
+      "room_rug_lod1.glb",
+      "room_table_long.glb",
+      "room_table_long_lod1.glb",
+      "room_table_small.glb",
+      "room_table_small_lod1.glb",
+      "room_wall_door_2m.glb",
+      "room_wall_door_2m_lod1.glb",
+      "room_wall_plaster_2m.glb",
+      "room_wall_plaster_2m_lod1.glb",
+      "room_wall_post.glb",
+      "room_wall_post_lod1.glb",
+      "room_wall_shelf.glb",
+      "room_wall_shelf_lod1.glb",
+      "room_wall_tall_stone_2m.glb",
+      "room_wall_tall_stone_2m_lod1.glb",
+      "room_wall_window_2m.glb",
+      "room_wall_window_2m_lod1.glb",
+      "room_weapon_rack.glb",
+      "room_weapon_rack_lod1.glb"
+    ],
+    "atlases": [
+      "room_atlas_albedo.webp",
+      "room_atlas_mr.webp",
+      "room_atlas_emissive.webp",
+      "room_atlas_albedo_512.webp"
+    ],
+    "skipped": "LOD2 omitted (rooms are small, per Claude 2026-11-14 intake note)"
+  },
+  "notes": "No character bodies, no rigs. Not referenced by any build.",
+  "repo_path": "assets/room/"
+}

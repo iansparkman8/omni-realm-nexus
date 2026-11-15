@@ -1,0 +1,3 @@
+{ "name": "Trek & Tally", "short_name": "Trek & Tally", "start_url": "./", "display": "standalone",
+  "background_color": "#f3efe6", "theme_color": "#2f3a2c",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }] }

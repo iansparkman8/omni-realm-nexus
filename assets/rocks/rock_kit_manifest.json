@@ -1,0 +1,300 @@
+{
+  "kit": "rock_kit",
+  "batch": "phase1 b5",
+  "status": "in repo at assets/rocks, NOT WIRED",
+  "for": "Claude to wire",
+  "style": "painted myth (silhouette-first, plum-tinted shadows, golden-hour)",
+  "conventions": {
+    "format": "glTF 2.0 binary",
+    "up": "+Y",
+    "front": "+Z",
+    "units": "metres",
+    "pivot": "base centre",
+    "sink": {
+      "rocks_m": 0.08,
+      "cliffs_m": 0.3
+    },
+    "textures": "image URIs stripped from glbs; shared atlases are sidecar webps in this folder. Engine should apply rock_atlas_{albedo,mr}.webp (phones: rock_atlas_albedo_512.webp).",
+    "material": "rock_kit_mat (one material, all pieces)",
+    "extras": "asset.extras + root extras: omniShareAtlas, omniShareAtlasUri, omniLod, omniBiome, notWired"
+  },
+  "atlas": {
+    "name": "rock_kit_atlas",
+    "albedo": "rock_atlas_albedo.webp",
+    "mr": "rock_atlas_mr.webp",
+    "albedo_low": "rock_atlas_albedo_512.webp",
+    "grid": "4x4 cells of 256 px, margin 0.03",
+    "cells": {
+      "meadow_side": {
+        "row": 0,
+        "col": 0
+      },
+      "meadow_top": {
+        "row": 0,
+        "col": 1
+      },
+      "highland_side": {
+        "row": 0,
+        "col": 2
+      },
+      "highland_top": {
+        "row": 0,
+        "col": 3
+      },
+      "snow_side": {
+        "row": 1,
+        "col": 0
+      },
+      "snow_top": {
+        "row": 1,
+        "col": 1
+      },
+      "desert_side": {
+        "row": 1,
+        "col": 2
+      },
+      "desert_top": {
+        "row": 1,
+        "col": 3
+      },
+      "coast_side": {
+        "row": 2,
+        "col": 0
+      },
+      "coast_top": {
+        "row": 2,
+        "col": 1
+      },
+      "swamp_side": {
+        "row": 2,
+        "col": 2
+      },
+      "swamp_top": {
+        "row": 2,
+        "col": 3
+      },
+      "taiga_side": {
+        "row": 3,
+        "col": 0
+      },
+      "taiga_top": {
+        "row": 3,
+        "col": 1
+      },
+      "volcanic_side": {
+        "row": 3,
+        "col": 2
+      },
+      "volcanic_top": {
+        "row": 3,
+        "col": 3
+      }
+    },
+    "sampler": "clamp, linear mipmaps"
+  },
+  "budgets": {
+    "lod0_max_tris": 1500,
+    "lod1_max_tris": 600,
+    "lod2_max_tris": 200,
+    "suggested_lod_distances_m": {
+      "lod1": 35,
+      "lod2": 80,
+      "cull_or_impostor": 160
+    },
+    "phone": "use albedo_512_low and LOD1 as the phone LOD0; instance by piece+biome"
+  },
+  "tiling": {
+    "cliff_wall_a": "4 m wide (x -2..+2), 6 m tall, tiles along X, displacement periodic",
+    "cliff_corner_a": "outer 90 deg; arms end at x=-2 facing +Z and z=-2 facing +X; chain with cliff_wall_a"
+  },
+  "biome_map_game14": {
+    "0 Deep sea": "coast",
+    "1 Shallows": "coast",
+    "2 Beach": "coast",
+    "3 Grassland": "meadow",
+    "4 Forest": "meadow",
+    "5 Savanna": "desert",
+    "6 Highlands": "highland",
+    "7 Snowcap": "snow",
+    "8 Desert": "desert",
+    "9 Taiga": "taiga",
+    "10 Swamp": "swamp",
+    "11 Tundra": "taiga",
+    "12 Jungle": "swamp",
+    "13 Volcanic slopes": "volcanic"
+  },
+  "biomes": [
+    "meadow",
+    "highland",
+    "snow",
+    "desert",
+    "coast",
+    "swamp",
+    "taiga",
+    "volcanic"
+  ],
+  "pieces": [
+    "boulder_a",
+    "boulder_b_slab",
+    "cluster_a",
+    "spire_a",
+    "cliff_wall_a",
+    "cliff_corner_a"
+  ],
+  "files": {
+    "glbs": [
+      "rock_coast_boulder_a.glb",
+      "rock_coast_boulder_a_lod1.glb",
+      "rock_coast_boulder_a_lod2.glb",
+      "rock_coast_boulder_b_slab.glb",
+      "rock_coast_boulder_b_slab_lod1.glb",
+      "rock_coast_boulder_b_slab_lod2.glb",
+      "rock_coast_cliff_corner_a.glb",
+      "rock_coast_cliff_corner_a_lod1.glb",
+      "rock_coast_cliff_corner_a_lod2.glb",
+      "rock_coast_cliff_wall_a.glb",
+      "rock_coast_cliff_wall_a_lod1.glb",
+      "rock_coast_cliff_wall_a_lod2.glb",
+      "rock_coast_cluster_a.glb",
+      "rock_coast_cluster_a_lod1.glb",
+      "rock_coast_cluster_a_lod2.glb",
+      "rock_coast_spire_a.glb",
+      "rock_coast_spire_a_lod1.glb",
+      "rock_coast_spire_a_lod2.glb",
+      "rock_desert_boulder_a.glb",
+      "rock_desert_boulder_a_lod1.glb",
+      "rock_desert_boulder_a_lod2.glb",
+      "rock_desert_boulder_b_slab.glb",
+      "rock_desert_boulder_b_slab_lod1.glb",
+      "rock_desert_boulder_b_slab_lod2.glb",
+      "rock_desert_cliff_corner_a.glb",
+      "rock_desert_cliff_corner_a_lod1.glb",
+      "rock_desert_cliff_corner_a_lod2.glb",
+      "rock_desert_cliff_wall_a.glb",
+      "rock_desert_cliff_wall_a_lod1.glb",
+      "rock_desert_cliff_wall_a_lod2.glb",
+      "rock_desert_cluster_a.glb",
+      "rock_desert_cluster_a_lod1.glb",
+      "rock_desert_cluster_a_lod2.glb",
+      "rock_desert_spire_a.glb",
+      "rock_desert_spire_a_lod1.glb",
+      "rock_desert_spire_a_lod2.glb",
+      "rock_highland_boulder_a.glb",
+      "rock_highland_boulder_a_lod1.glb",
+      "rock_highland_boulder_a_lod2.glb",
+      "rock_highland_boulder_b_slab.glb",
+      "rock_highland_boulder_b_slab_lod1.glb",
+      "rock_highland_boulder_b_slab_lod2.glb",
+      "rock_highland_cliff_corner_a.glb",
+      "rock_highland_cliff_corner_a_lod1.glb",
+      "rock_highland_cliff_corner_a_lod2.glb",
+      "rock_highland_cliff_wall_a.glb",
+      "rock_highland_cliff_wall_a_lod1.glb",
+      "rock_highland_cliff_wall_a_lod2.glb",
+      "rock_highland_cluster_a.glb",
+      "rock_highland_cluster_a_lod1.glb",
+      "rock_highland_cluster_a_lod2.glb",
+      "rock_highland_spire_a.glb",
+      "rock_highland_spire_a_lod1.glb",
+      "rock_highland_spire_a_lod2.glb",
+      "rock_meadow_boulder_a.glb",
+      "rock_meadow_boulder_a_lod1.glb",
+      "rock_meadow_boulder_a_lod2.glb",
+      "rock_meadow_boulder_b_slab.glb",
+      "rock_meadow_boulder_b_slab_lod1.glb",
+      "rock_meadow_boulder_b_slab_lod2.glb",
+      "rock_meadow_cliff_corner_a.glb",
+      "rock_meadow_cliff_corner_a_lod1.glb",
+      "rock_meadow_cliff_corner_a_lod2.glb",
+      "rock_meadow_cliff_wall_a.glb",
+      "rock_meadow_cliff_wall_a_lod1.glb",
+      "rock_meadow_cliff_wall_a_lod2.glb",
+      "rock_meadow_cluster_a.glb",
+      "rock_meadow_cluster_a_lod1.glb",
+      "rock_meadow_cluster_a_lod2.glb",
+      "rock_meadow_spire_a.glb",
+      "rock_meadow_spire_a_lod1.glb",
+      "rock_meadow_spire_a_lod2.glb",
+      "rock_snow_boulder_a.glb",
+      "rock_snow_boulder_a_lod1.glb",
+      "rock_snow_boulder_a_lod2.glb",
+      "rock_snow_boulder_b_slab.glb",
+      "rock_snow_boulder_b_slab_lod1.glb",
+      "rock_snow_boulder_b_slab_lod2.glb",
+      "rock_snow_cliff_corner_a.glb",
+      "rock_snow_cliff_corner_a_lod1.glb",
+      "rock_snow_cliff_corner_a_lod2.glb",
+      "rock_snow_cliff_wall_a.glb",
+      "rock_snow_cliff_wall_a_lod1.glb",
+      "rock_snow_cliff_wall_a_lod2.glb",
+      "rock_snow_cluster_a.glb",
+      "rock_snow_cluster_a_lod1.glb",
+      "rock_snow_cluster_a_lod2.glb",
+      "rock_snow_spire_a.glb",
+      "rock_snow_spire_a_lod1.glb",
+      "rock_snow_spire_a_lod2.glb",
+      "rock_swamp_boulder_a.glb",
+      "rock_swamp_boulder_a_lod1.glb",
+      "rock_swamp_boulder_a_lod2.glb",
+      "rock_swamp_boulder_b_slab.glb",
+      "rock_swamp_boulder_b_slab_lod1.glb",
+      "rock_swamp_boulder_b_slab_lod2.glb",
+      "rock_swamp_cliff_corner_a.glb",
+      "rock_swamp_cliff_corner_a_lod1.glb",
+      "rock_swamp_cliff_corner_a_lod2.glb",
+      "rock_swamp_cliff_wall_a.glb",
+      "rock_swamp_cliff_wall_a_lod1.glb",
+      "rock_swamp_cliff_wall_a_lod2.glb",
+      "rock_swamp_cluster_a.glb",
+      "rock_swamp_cluster_a_lod1.glb",
+      "rock_swamp_cluster_a_lod2.glb",
+      "rock_swamp_spire_a.glb",
+      "rock_swamp_spire_a_lod1.glb",
+      "rock_swamp_spire_a_lod2.glb",
+      "rock_taiga_boulder_a.glb",
+      "rock_taiga_boulder_a_lod1.glb",
+      "rock_taiga_boulder_a_lod2.glb",
+      "rock_taiga_boulder_b_slab.glb",
+      "rock_taiga_boulder_b_slab_lod1.glb",
+      "rock_taiga_boulder_b_slab_lod2.glb",
+      "rock_taiga_cliff_corner_a.glb",
+      "rock_taiga_cliff_corner_a_lod1.glb",
+      "rock_taiga_cliff_corner_a_lod2.glb",
+      "rock_taiga_cliff_wall_a.glb",
+      "rock_taiga_cliff_wall_a_lod1.glb",
+      "rock_taiga_cliff_wall_a_lod2.glb",
+      "rock_taiga_cluster_a.glb",
+      "rock_taiga_cluster_a_lod1.glb",
+      "rock_taiga_cluster_a_lod2.glb",
+      "rock_taiga_spire_a.glb",
+      "rock_taiga_spire_a_lod1.glb",
+      "rock_taiga_spire_a_lod2.glb",
+      "rock_volcanic_boulder_a.glb",
+      "rock_volcanic_boulder_a_lod1.glb",
+      "rock_volcanic_boulder_a_lod2.glb",
+      "rock_volcanic_boulder_b_slab.glb",
+      "rock_volcanic_boulder_b_slab_lod1.glb",
+      "rock_volcanic_boulder_b_slab_lod2.glb",
+      "rock_volcanic_cliff_corner_a.glb",
+      "rock_volcanic_cliff_corner_a_lod1.glb",
+      "rock_volcanic_cliff_corner_a_lod2.glb",
+      "rock_volcanic_cliff_wall_a.glb",
+      "rock_volcanic_cliff_wall_a_lod1.glb",
+      "rock_volcanic_cliff_wall_a_lod2.glb",
+      "rock_volcanic_cluster_a.glb",
+      "rock_volcanic_cluster_a_lod1.glb",
+      "rock_volcanic_cluster_a_lod2.glb",
+      "rock_volcanic_spire_a.glb",
+      "rock_volcanic_spire_a_lod1.glb",
+      "rock_volcanic_spire_a_lod2.glb"
+    ],
+    "atlases": [
+      "rock_atlas_albedo.webp",
+      "rock_atlas_mr.webp",
+      "rock_atlas_albedo_512.webp"
+    ]
+  },
+  "total_glbs": 144,
+  "notes": "No character bodies, no rigs. Not referenced by any build.",
+  "repo_path": "assets/rocks/"
+}

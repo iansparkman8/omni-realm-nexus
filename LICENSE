@@ -1,0 +1,18 @@
+Copyright (c) 2026 Ian Sparkman. All rights reserved.
+
+Omni-Realm Nexus, including its source code, game design, world generation,
+recipes, lore, characters, text, art and data, is proprietary.
+
+You may play the game at its official address. No other licence is granted.
+Without written permission from the copyright holder you may not copy, modify,
+merge, publish, distribute, sublicense, sell, host or mirror this software or
+any part of it, or use it to make a derivative game or service.
+
+Viewing this repository on GitHub does not grant any licence beyond what
+GitHub's Terms of Service require.
+
+Third-party components keep their own licences and are listed under Credits
+in README.md (for example star and constellation data derived from
+d3-celestial, BSD-3-Clause, and three.js, MIT).
+
+Contact: iansparkman8@gmail.com
