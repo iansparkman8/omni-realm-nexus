@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trek &amp; Tally</title>
+<meta name="theme-color" content="#2f3a2c">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root { --bg:#f3efe6; --ink:#24291f; --muted:#6b6f5f; --card:#fffdf8; --line:#ddd6c6; --moss:#4f6b3a; --moss-d:#3c5229; --rust:#b0552e; --sky:#d8e4e8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:#2f3a2c; color:#f3efe6; padding:14px 18px 10px; }
+  header h1 { margin:0; font-size:20px; letter-spacing:.02em; }
+  header p { margin:2px 0 0; font-size:13px; color:#c9cdb8; }
+  nav { display:flex; gap:4px; padding:8px 12px 0; background:#2f3a2c; }
+  nav button { flex:1; border:0; background:transparent; color:#c9cdb8; padding:10px 6px; font:inherit; font-size:14px; border-bottom:3px solid transparent; cursor:pointer; }
+  nav button.on { color:#fff; border-bottom-color:#e2b55b; }
+  main { max-width:720px; margin:0 auto; padding:14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:12px; }
+  .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .stat b { display:block; font-size:26px; font-variant-numeric:tabular-nums; }
+  .stat span { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+  label { display:block; font-size:13px; color:var(--muted); margin:8px 0 3px; }
+  input, select, textarea { width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; color:var(--ink); }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btn { border:0; border-radius:8px; padding:11px 14px; font:inherit; font-weight:600; cursor:pointer; background:var(--moss); color:#fff; }
+  .btn:hover { background:var(--moss-d); }
+  .btn.ghost { background:transparent; color:var(--moss); border:1px solid var(--moss); }
+  .btn.warn { background:transparent; color:var(--rust); border:1px solid var(--rust); padding:6px 10px; font-weight:500; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:7px 6px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  td:first-child { white-space:nowrap; }
+  th { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .muted { color:var(--muted); font-size:13px; }
+  .hidden { display:none; }
+  .check { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); }
+  .check input { width:auto; }
+  .check .w { margin-left:auto; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .note { background:var(--sky); border-radius:8px; padding:10px; font-size:13px; }
+  svg text { font:11px system-ui,sans-serif; fill:var(--muted); }
+  textarea.out { font:12px ui-monospace,monospace; height:140px; }
+</style>
+</head>
+<body>
+<header><h1>Trek &amp; Tally</h1><p>An offline trail log. Everything stays on this device.</p></header>
+<nav id="tabs"><button data-v="dash" class="on">Trail</button><button data-v="log">Log a day</button><button data-v="gear">Gear</button><button data-v="data">Data</button></nav>
+<main>
+  <section id="v-dash">
+    <div class="card stats" id="stats"></div>
+    <div class="card"><b>Distance so far</b><div id="chart"></div></div>
+    <div class="card"><b>Days on trail</b><table id="days"></table></div>
+  </section>
+
+  <section id="v-log" class="hidden">
+    <form class="card" id="f">
+      <div class="row"><div><label for="d">Date</label><input id="d" type="date" required></div>
+        <div><label for="mi">Miles</label><input id="mi" type="number" step="0.1" min="0" max="80" required></div></div>
+      <div class="row"><div><label for="w">Weather</label><select id="w"><option>Clear</option><option>Cloudy</option><option>Rain</option><option>Snow</option><option>Wind</option><option>Heat</option><option>Fog</option></select></div>
+        <div><label for="cal">Calories eaten</label><input id="cal" type="number" min="0" max="15000" step="50"></div></div>
+      <div class="row"><div><label for="bw">Boot wear (%)</label><input id="bw" type="number" min="0" max="100"></div>
+        <div><label for="camp">Camp / town</label><input id="camp" maxlength="60"></div></div>
+      <label for="n">Notes</label><textarea id="n" rows="3" maxlength="600"></textarea>
+      <p><button class="btn" type="submit">Save day</button> <span class="muted" id="saved"></span></p>
+    </form>
+  </section>
+
+  <section id="v-gear" class="hidden">
+    <div class="card"><b>Pack list</b> <span class="muted" id="pw"></span><div id="gearlist"></div>
+      <div class="row" style="margin-top:10px"><input id="gname" placeholder="Item" maxlength="40"><input id="gw" type="number" min="0" step="0.1" placeholder="Weight (oz)"></div>
+      <p><button class="btn ghost" id="gadd" type="button">Add item</button></p></div>
+  </section>
+
+  <section id="v-data" class="hidden">
+    <div class="card"><b>Export</b><p class="muted">Your log as CSV. Copy it, or download where your browser allows.</p>
+      <p><button class="btn" id="copy" type="button">Copy CSV</button> <button class="btn ghost" id="dl" type="button">Download CSV</button> <span class="muted" id="cmsg"></span></p>
+      <textarea class="out" id="csv" readonly></textarea></div>
+    <div class="card note">No account, no server, no tracking. Data lives in this browser's storage on this device. Export now and then if the log matters to you.</div>
+  </section>
+</main>
+<script>
+(() => {
+  // ---- storage: IndexedDB when available, memory otherwise (the page still works, it just forgets on reload)
+  const mem = { days: [], gear: [] };
+  let db = null;
+  const open = () => new Promise(res => {
+    try { const r = indexedDB.open('trek-and-tally', 1);
+      r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('days', { keyPath: 'date' }); d.createObjectStore('gear', { keyPath: 'id' }); };
+      r.onsuccess = () => { db = r.result; res(); }; r.onerror = () => res(); } catch (e) { res(); }
+  });
+  const all = s => new Promise(res => { if (!db) return res(mem[s].slice());
+    try { const q = db.transaction(s).objectStore(s).getAll(); q.onsuccess = () => res(q.result); q.onerror = () => res([]); } catch (e) { res(mem[s].slice()); } });
+  const put = (s, v) => new Promise(res => { if (!db) { const k = s === 'days' ? 'date' : 'id'; mem[s] = mem[s].filter(x => x[k] !== v[k]).concat([v]); return res(); }
+    try { const t = db.transaction(s, 'readwrite'); t.objectStore(s).put(v); t.oncomplete = res; t.onerror = res; } catch (e) { res(); } });
+  const del = (s, k) => new Promise(res => { if (!db) { const kk = s === 'days' ? 'date' : 'id'; mem[s] = mem[s].filter(x => x[kk] !== k); return res(); }
+    try { const t = db.transaction(s, 'readwrite'); t.objectStore(s).delete(k); t.oncomplete = res; t.onerror = res; } catch (e) { res(); } });
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const fmt = n => (Math.round(n * 10) / 10).toLocaleString();
+
+  // ---- views
+  function show(v) {
+    for (const b of document.querySelectorAll('#tabs button')) b.classList.toggle('on', b.dataset.v === v);
+    for (const s of ['dash', 'log', 'gear', 'data']) $('v-' + s).classList.toggle('hidden', s !== v);
+    if (v === 'dash') drawDash(); if (v === 'gear') drawGear(); if (v === 'data') drawData();
+  }
+  $('tabs').addEventListener('click', e => { if (e.target.dataset.v) show(e.target.dataset.v); });
+
+  async function drawDash() {
+    const days = (await all('days')).sort((a, b) => a.date.localeCompare(b.date));
+    const total = days.reduce((s, d) => s + d.miles, 0), n = days.length;
+    const best = days.reduce((m, d) => Math.max(m, d.miles), 0);
+    const span = n ? Math.round((new Date(days[n - 1].date) - new Date(days[0].date)) / 864e5) + 1 : 0;
+    $('stats').innerHTML = [['Total miles', fmt(total)], ['Days logged', n], ['Average / day', n ? fmt(total / n) : '0'], ['Longest day', fmt(best)],
+      ['Calendar days', span], ['Zero days', n ? days.filter(d => d.miles === 0).length : 0]]
+      .map(([k, v]) => '<div class="stat"><b>' + v + '</b><span>' + k + '</span></div>').join('');
+    // cumulative distance, drawn as inline SVG
+    const W = 660, H = 180, P = 30;
+    if (n < 2) { $('chart').innerHTML = '<p class="muted">Log two or more days to see your distance line.</p>'; }
+    else {
+      let acc = 0; const pts = days.map((d, i) => { acc += d.miles; return [P + i * (W - 2 * P) / (n - 1), H - P - acc / total * (H - 2 * P)]; });
+      const path = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+      $('chart').innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Cumulative miles">'
+        + '<line x1="' + P + '" y1="' + (H - P) + '" x2="' + (W - P) + '" y2="' + (H - P) + '" stroke="#ddd6c6"/>'
+        + '<path d="' + path + ' L' + pts[n - 1][0] + ' ' + (H - P) + ' L' + P + ' ' + (H - P) + 'Z" fill="#4f6b3a22"/>'
+        + '<path d="' + path + '" fill="none" stroke="#4f6b3a" stroke-width="2.5" stroke-linejoin="round"/>'
+        + '<text x="' + P + '" y="' + (H - 10) + '">' + esc(days[0].date) + '</text><text x="' + (W - P) + '" y="' + (H - 10) + '" text-anchor="end">' + esc(days[n - 1].date) + '</text>'
+        + '<text x="' + (W - P) + '" y="' + (P - 8) + '" text-anchor="end">' + fmt(total) + ' mi</text></svg>';
+    }
+    $('days').innerHTML = n ? '<tr><th>Date</th><th>Miles</th><th>Weather</th><th>Camp</th><th></th></tr>' + days.slice().reverse().map(d =>
+      '<tr><td>' + esc(d.date) + '</td><td>' + fmt(d.miles) + '</td><td>' + esc(d.weather) + '</td><td>' + esc(d.camp) + '</td><td><button class="btn warn" data-del="' + esc(d.date) + '">Delete</button></td></tr>').join('')
+      : '<tr><td class="muted">No days yet. Tap "Log a day" after your first stretch.</td></tr>';
+  }
+  $('days').addEventListener('click', async e => {
+    const k = e.target.dataset.del; if (!k) return;
+    if (e.target.dataset.sure !== '1') { e.target.dataset.sure = '1'; e.target.textContent = 'Sure?'; return; }
+    await del('days', k); drawDash();
+  });
+
+  $('d').value = new Date().toISOString().slice(0, 10);
+  $('f').addEventListener('submit', async e => {
+    e.preventDefault();
+    const num = (id, max) => { const v = parseFloat($(id).value); return isFinite(v) ? Math.min(max, Math.max(0, v)) : null; };
+    await put('days', { date: $('d').value, miles: num('mi', 80) || 0, weather: $('w').value, calories: num('cal', 15000), bootWear: num('bw', 100), camp: $('camp').value.trim(), notes: $('n').value.trim() });
+    $('saved').textContent = 'Saved ' + $('d').value + '.';
+    $('mi').value = $('cal').value = $('camp').value = $('n').value = '';
+  });
+
+  async function drawGear() {
+    const g = (await all('gear')).sort((a, b) => a.id - b.id);
+    const packed = g.filter(x => x.packed).reduce((s, x) => s + (x.oz || 0), 0), allOz = g.reduce((s, x) => s + (x.oz || 0), 0);
+    $('pw').textContent = g.length ? '· packed ' + fmt(packed / 16) + ' lb of ' + fmt(allOz / 16) + ' lb' : '';
+    $('gearlist').innerHTML = g.length ? g.map(x => '<div class="check"><input type="checkbox" data-id="' + x.id + '"' + (x.packed ? ' checked' : '') + ' aria-label="Packed">'
+      + '<span>' + esc(x.name) + '</span><span class="w">' + (x.oz ? fmt(x.oz) + ' oz' : '') + '</span><button class="btn warn" data-gdel="' + x.id + '">Remove</button></div>').join('')
+      : '<p class="muted">Add what you carry. Tick items as they go in the pack.</p>';
+  }
+  $('gadd').addEventListener('click', async () => {
+    const name = $('gname').value.trim(); if (!name) return;
+    const oz = parseFloat($('gw').value);
+    await put('gear', { id: Date.now(), name, oz: isFinite(oz) && oz >= 0 ? oz : 0, packed: false });
+    $('gname').value = $('gw').value = ''; drawGear();
+  });
+  $('gearlist').addEventListener('click', async e => {
+    const id = +e.target.dataset.id, gd = +e.target.dataset.gdel;
+    if (gd) { await del('gear', gd); return drawGear(); }
+    if (id) { const x = (await all('gear')).find(v => v.id === id); if (x) { x.packed = e.target.checked; await put('gear', x); drawGear(); } }
+  });
+
+  async function csvText() {
+    const days = (await all('days')).sort((a, b) => a.date.localeCompare(b.date));
+    const q = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    return ['date,miles,weather,calories,boot_wear_pct,camp,notes'].concat(days.map(d => [d.date, d.miles, d.weather, d.calories ?? '', d.bootWear ?? '', d.camp, d.notes].map(q).join(','))).join('\n');
+  }
+  async function drawData() { $('csv').value = await csvText(); }
+  $('copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(await csvText()); $('cmsg').textContent = 'Copied.'; }
+    catch (e) { $('csv').select(); $('cmsg').textContent = 'Select the text below and copy it.'; }
+  });
+  $('dl').addEventListener('click', async () => {
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([await csvText()], { type: 'text/csv' })); a.download = 'trek-and-tally.csv'; a.click(); $('cmsg').textContent = 'If nothing downloaded, use Copy.'; }
+    catch (e) { $('cmsg').textContent = 'Download is blocked here; use Copy.'; }
+  });
+
+  // offline: register the service worker when this page is served from its own site (not inside a preview frame)
+  if ('serviceWorker' in navigator && location.protocol === 'https:') { try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) { } }
+
+  open().then(() => show('dash'));
+})();
+</script>
+</body>
+</html>
