@@ -1,0 +1,2 @@
+/*! Omni-Realm Nexus (c) 2026 Ian Sparkman. All rights reserved. Copying, mirroring or re-hosting is not permitted. */
+const archiFlag=c=>!(window.FLAGS&&!1===FLAGS[c]);function archiOn(){return archiFlag("archi")&&!/[?&]look=classic\b/.test(location.search)}
